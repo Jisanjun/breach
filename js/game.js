@@ -4,7 +4,7 @@ const GUNS={
   ar:{n:'돌격소총',rpm:700,dmg:34,pel:1,spr:.028,hole:0,mag:30,res:120,kick:.012,auto:1,rel:1.9},
   smg:{n:'기관단총',rpm:950,dmg:23,pel:1,spr:.042,hole:0,mag:28,res:140,kick:.009,auto:1,rel:1.7},
   sg:{n:'산탄총',rpm:80,dmg:15,pel:8,spr:.14,hole:2,mag:6,res:24,kick:.05,auto:0,rel:2.4},
-  dmr:{n:'지정사수소총',rpm:320,dmg:58,pel:1,spr:.012,hole:1,mag:12,res:48,kick:.03,auto:0,rel:2.1},
+  dmr:{n:'지정사수소총',rpm:320,dmg:58,pel:1,spr:.012,hole:1,mag:12,res:48,kick:.03,auto:0,rel:2.1,zoom:.36},
   pistol:{n:'권총',rpm:420,dmg:30,pel:1,spr:.03,hole:0,mag:12,res:48,kick:.018,auto:0,rel:1.4}};
 // Operators: [attackers, defenders]. g = gadget name (G key), nade = throwable (T key), d = menu description.
 const OPS=[[

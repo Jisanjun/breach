@@ -61,6 +61,7 @@ $('bCopy').onclick=()=>navigator.clipboard.writeText($('link').value).then(()=>{
 $('bResume').onclick=()=>cv.requestPointerLock();
 $('bLeave').onclick=()=>{location.href=location.href.split(/[?#]/)[0]};
 if(room){$('bJoin').hidden=false;$('bHost').hidden=true}
+if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches)err('키보드와 마우스가 필요한 PC용 게임입니다');
 
 // ---------- input ----------
 function swapGun(i){if(i!==gun&&canAct()){gun=i;reloadT=0;fireT=Math.max(fireT,.25);sfx.ui()}}

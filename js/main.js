@@ -25,7 +25,7 @@ function update(dt){
     for(const [i,j] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=(me.x|0)+.5+i,y=(me.y|0)+.5+j;if(free(x,y)){me.x=x;me.y=y;break}}
   me.z+=((me.drone?.1:keys.KeyC?.3:.5)-me.z)*Math.min(1,dt*12);
   me.lean+=((act?(keys.KeyE?1:0)-(keys.KeyQ?1:0):0)-me.lean)*Math.min(1,dt*10);
-  fov+=((ads&&act?.55:cfg.fov)-fov)*Math.min(1,dt*14);
+  fov+=((ads&&act?curGun().zoom||.55:cfg.fov)-fov)*Math.min(1,dt*14);
   sensing=act&&op().sensor&&keys.KeyG?1:0;
   // objective: hold F to plant (attackers, inside the site) or disable (defenders, next to the defuser)
   const hold=act&&phase==='act'&&keys.KeyF&&!moving&&(isAtk()?!defuser&&inSite(me.x,me.y):defuser&&Math.hypot(me.x-defuser.x,me.y-defuser.y)<1.3);
@@ -58,6 +58,7 @@ function update(dt){
     cam.a=me.a;cam.z=me.z;cam.pitch=me.pitch;cam.x=me.x-sa*me.lean*.35;cam.y=me.y+ca*me.lean*.35;
     if(grid[(cam.y|0)*MW+(cam.x|0)]&&!me.drone){cam.x=me.x;cam.y=me.y}
   }
+  if(boomT>0){cam.a+=rnd(boomT*.07);cam.pitch+=rnd(boomT*.09)}                 // blast shake
 }
 
 function selfTest(){

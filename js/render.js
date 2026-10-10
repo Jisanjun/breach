@@ -142,6 +142,11 @@ function render(){
     const dx=p.x-cam.x,dy=p.y-cam.y,d=dx*ca+dy*sa;
     if(d>.2)labels.push(['◆ '+p.who,W/2+(dy*ca-dx*sa)/d*proj,hor+(cam.z-p.z)*proj/d,'#fd3']);
   }
+  const mark=(o,txt,col)=>{                                   // objective markers show through walls
+    const dx=o.x-cam.x,dy=o.y-cam.y,d=dx*ca+dy*sa;
+    if(d>.6)labels.push([txt+' '+(Math.hypot(dx,dy)*2|0)+'m',W/2+(dy*ca-dx*sa)/d*proj,hor+(cam.z-.75)*proj/d,col]);
+  };
+  if(mode!=='menu'&&phase!=='lobby')defuser?mark(defuser,'◈ 디퓨저','#ff6a5a'):mark(bomb,'◇ 목표','#fff');
   ctx.putImageData(img,0,0);
 
   // ---- overlays ----
@@ -150,7 +155,7 @@ function render(){
   const playing=mode!=='menu'&&phase!=='lobby';
   if(me.drone&&playing){ctx.fillStyle='rgba(40,255,120,.07)';ctx.fillRect(0,0,W,H)}
   else if(!me.dead&&playing){
-    const a=clamp((cfg.fov-fov)/(cfg.fov-.55),0,1);
+    const a=clamp((cfg.fov-fov)/(cfg.fov-(curGun().zoom||.55)),0,1);
     drawGun(me.guns[gun],a);
     if(muzzle>0){ctx.fillStyle='rgba(255,220,150,.06)';ctx.fillRect(0,0,W,H)}
     ctx.fillStyle='#fff';
