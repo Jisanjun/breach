@@ -4,37 +4,83 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BREACH — 5v5 파괴 FPS</title>
-<meta name="description" content="브라우저에서 바로 하는 5대5 벽 파괴 FPS. 링크만 공유하면 같이 플레이.">
+<meta name="description" content="브라우저에서 바로 하는 5대5 벽 파괴 FPS. 설치 없이 링크만 공유하면 같이 플레이.">
+<meta property="og:title" content="BREACH — 5v5 파괴 FPS">
+<meta property="og:description" content="벽을 쏘면 구멍이 나고, 그 구멍으로 보고 쏜다. 설치 없이 링크로 5대5.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2316181d'/%3E%3Cpath d='M3 3h10v4H9v6H7V7H3z' fill='%23ff9a3c'/%3E%3C/svg%3E">
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;font:14px/1.5 system-ui,sans-serif;color:#eee;user-select:none}
 [hidden]{display:none!important}
 #cv{width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated;display:block}
-.hud{position:fixed;padding:8px 14px;text-shadow:0 1px 3px #000;font-weight:600;pointer-events:none;white-space:pre-line}
-#tl{top:0;left:0}#tr{top:0;right:0;text-align:right}
-#bl{bottom:0;left:0;font-size:22px}#br{bottom:0;right:0;text-align:right;font-size:18px}
-#mid{top:62%;left:0;right:0;text-align:center;font-size:18px}
-#menu{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center}
-#box{width:min(560px,92vw);max-height:94vh;overflow:auto;background:#16181d;border:1px solid #333;border-radius:8px;padding:20px 24px}
-h1{margin:0 0 12px;font-size:26px;letter-spacing:2px}h1 small{font-size:13px;color:#999;letter-spacing:0}
-input,button,select{font:inherit;padding:8px 10px;border-radius:5px;border:1px solid #444;background:#0c0d10;color:#eee}
+.c0{color:#6aa5ff}.c1{color:#ff9a3c}.c-1{color:#ccc}
+
+/* HUD */
+#hud>*{position:fixed;pointer-events:none;text-shadow:0 1px 3px #000}
+#topbar{top:8px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;font-weight:700}
+.pips{letter-spacing:3px;font-size:16px;min-width:90px}#pip0{text-align:right}
+.sc{font-size:22px;min-width:16px;text-align:center}
+#clock{background:#000a;padding:1px 14px;border-radius:4px;font-size:22px;min-width:60px;text-align:center}
+#clock.hot{color:#ff5a4a}
+#sub{top:46px;left:0;right:0;text-align:center;font-size:13px;color:#ddd}
+#feed{top:8px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:13px}
+#feed div{background:#000a;padding:2px 8px;border-radius:3px}
+#hpBox{left:16px;bottom:14px;font-weight:700}
+#hpNum{font-size:26px}#opName{margin-left:8px;color:#ccc}
+#hpBar{width:190px;height:8px;background:#0009;border-radius:3px;overflow:hidden}#hpFill{height:100%;background:#eee}
+#ammoBox{right:16px;bottom:14px;text-align:right;font-weight:700}
+#ammo{font-size:30px}#gunName{color:#ccc}#gads{font-size:13px;color:#ddd;white-space:pre-line;font-weight:600}
+#prompt{top:61%;left:0;right:0;text-align:center;font-size:17px;font-weight:600;white-space:pre-line}
+#prog{top:58%;left:50%;width:220px;height:6px;margin-left:-110px;background:#0009;border-radius:3px;overflow:hidden}#progFill{height:100%;background:#fd6}
+#note{top:54%;left:0;right:0;text-align:center;font-size:15px;font-weight:800;color:#ff5a4a;letter-spacing:2px}
+#banner{top:22%;left:0;right:0;text-align:center;font-size:42px;font-weight:800;letter-spacing:4px;opacity:0}
+#banner small{display:block;font-size:16px;letter-spacing:1px;font-weight:600}
+#banner.show{animation:ban 2.8s ease-out}
+@keyframes ban{0%{opacity:0;transform:scale(1.25)}10%{opacity:1;transform:scale(1)}78%{opacity:1}100%{opacity:0}}
+#board{top:50%;left:50%;transform:translate(-50%,-50%);background:#101216ee;border:1px solid #333;border-radius:8px;padding:12px 16px;min-width:340px;text-shadow:none}
+#board table{width:100%;border-collapse:collapse}#board td{padding:3px 10px}#board .hd td{color:#999;font-size:12px}
+#board tr.c0 td,#board tr.c1 td{font-weight:700;padding-top:10px;border-bottom:1px solid #333}
+
+/* menu */
+#menu{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center}
+#box{width:min(620px,94vw);max-height:94vh;overflow:auto;background:#16181d;border:1px solid #333;border-radius:8px;padding:18px 22px}
+h1{margin:0 0 10px;font-size:26px;letter-spacing:2px}h1 small{font-size:13px;color:#999;letter-spacing:0}
+h2{margin:14px 0 4px;font-size:13px;color:#9aa;font-weight:600}
+input,button{font:inherit;padding:8px 10px;border-radius:5px;border:1px solid #444;background:#0c0d10;color:#eee}
 button{cursor:pointer;background:#2b62d9;border-color:#2b62d9;font-weight:600}
+button:disabled{opacity:.5;cursor:default}
 button.alt{background:#2a2d35;border-color:#444}
-.row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}.row>input,.row select{flex:1;min-width:0}
-.row label{flex:1;display:flex;gap:6px;align-items:center;white-space:nowrap;min-width:220px}
-#teams{display:flex;gap:16px}#teams>div{flex:1}ul{margin:4px 0;padding-left:18px;min-height:60px}
-.t0{color:#6aa5ff}.t1{color:#ff9a3c}
-#help{color:#9aa;font-size:12.5px;margin:12px 0 0;white-space:pre-wrap;font-family:inherit}
-#err{color:#f66;margin:8px 0 0;min-height:1em}#res{color:#fd6;font-weight:700}
+.row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}.row>input[type=text],.row>#link{flex:1;min-width:0}
+.ops{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.op{background:#1d2027;border-color:#333;text-align:left;font-weight:700;padding:6px 10px}
+.op small{display:block;font-weight:400;font-size:12px;color:#9aa}
+.op.on{border-color:#ff9a3c;background:#2a2118}
+#ops0 .op.on{border-color:#6aa5ff;background:#18212e}
+.set{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center}.set input{padding:0}
+#teams{display:flex;gap:16px}#teams>div{flex:1}ul{margin:4px 0;padding-left:18px;min-height:56px}
+details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color:#ccc}
+#help{margin:6px 0 0;white-space:pre-wrap;font-family:inherit}
+#err{color:#f88;margin:8px 0 0;min-height:1em}#res{color:#fd6;font-weight:700}
 </style>
 </head>
 <body>
 <canvas id="cv" width="480" height="270"></canvas>
-<div class="hud" id="tl"></div><div class="hud" id="tr"></div>
-<div class="hud" id="bl"></div><div class="hud" id="br"></div><div class="hud" id="mid"></div>
+<div id="hud" hidden>
+  <div id="topbar"><span class="pips c0" id="pip0"></span><span class="sc c0" id="sc0"></span><span id="clock"></span><span class="sc c1" id="sc1"></span><span class="pips c1" id="pip1"></span></div>
+  <div id="sub"></div>
+  <div id="feed"></div>
+  <div id="hpBox"><span id="hpNum"></span><span id="opName"></span><div id="hpBar"><div id="hpFill"></div></div></div>
+  <div id="ammoBox"><div id="ammo"></div><div id="gunName"></div><div id="gads"></div></div>
+  <div id="note"></div>
+  <div id="prog" hidden><div id="progFill"></div></div>
+  <div id="prompt"></div>
+  <div id="banner"></div>
+  <div id="board" hidden></div>
+</div>
 <div id="menu"><div id="box">
   <h1>BREACH <small>5v5 파괴 FPS</small></h1>
   <div id="home">
-    <div class="row"><input id="nm" maxlength="12" placeholder="닉네임"></div>
+    <div class="row"><input type="text" id="nm" maxlength="12" placeholder="닉네임"></div>
     <div class="row">
       <button id="bJoin" hidden>방 참가</button>
       <button id="bHost">방 만들기 (5v5)</button>
@@ -43,692 +89,49 @@ button.alt{background:#2a2d35;border-color:#444}
   </div>
   <div id="lobby" hidden>
     <div id="res"></div>
-    <div class="row"><input id="link" readonly><button id="bCopy" class="alt">초대 링크 복사</button></div>
+    <div class="row"><input type="text" id="link" readonly><button id="bCopy" class="alt">초대 링크 복사</button></div>
     <div id="teams">
-      <div><b class="t0">블루</b><ul id="t0"></ul></div>
-      <div><b class="t1">오렌지</b><ul id="t1"></ul></div>
+      <div><b class="c0">블루</b><ul id="t0"></ul></div>
+      <div><b class="c1">오렌지</b><ul id="t1"></ul></div>
     </div>
     <div class="row"><button id="bStart" hidden>매치 시작</button><button id="bTeam" class="alt">팀 바꾸기</button></div>
     <div id="wait"></div>
   </div>
-  <div class="row"><label>공격 <select id="op0"></select></label><label>방어 <select id="op1"></select></label></div>
-  <pre id="help">WASD 이동 · Shift 달리기 · C 앉기 · Q/E 기울이기
-좌클릭 사격 · 우클릭 조준 · R 장전 · 1/2 무기 · V 근접 (바리케이드는 3타)
-G 오퍼레이터 가젯 · F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어)
-
-공격: 붉은 컨테이너가 있는 방에 디퓨저를 설치하고 30초 지키거나, 방어팀 전멸
-방어: 3분 버티기, 공격팀 전멸, 또는 설치된 디퓨저 해제
-준비 단계 25초 동안 공격팀은 드론으로 정찰, 방어팀은 벽을 보강. 4라운드 선승
-밝은 벽·나무 바리케이드는 총알이 뚫고, 구멍으로 보고 쏠 수 있음</pre>
+  <div id="pause" hidden>
+    <div class="row"><button id="bResume">계속하기</button><button id="bLeave" class="alt">나가기</button></div>
+  </div>
   <div id="err"></div>
+  <h2>공격 오퍼레이터</h2><div class="ops" id="ops0"></div>
+  <h2>방어 오퍼레이터</h2><div class="ops" id="ops1"></div>
+  <h2>설정</h2>
+  <div class="set">
+    <span>마우스 감도</span><input type="range" id="sSens">
+    <span>소리 크기</span><input type="range" id="sVol">
+    <span>시야각</span><input type="range" id="sFov">
+  </div>
+  <details><summary>조작법과 규칙</summary>
+  <pre id="help">WASD 이동 · Shift 달리기 · C 앉기 · Q/E 기울이기
+좌클릭 사격 · 우클릭 조준 · R 장전 · 1/2/X/휠 무기 교체
+V 근접 (문 바리케이드 3타, 창문 2타) · G 가젯 · T 투척물
+B 열린 문에 바리케이드 · Z/휠클릭 핑 · Tab 점수판
+F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
+
+공격: 바닥이 붉은 방에 디퓨저를 설치하고 35초 지키거나, 방어팀 전멸
+방어: 3분 버티기, 공격팀 전멸, 또는 설치된 디퓨저 해제
+준비 30초: 공격팀은 드론 정찰, 방어팀은 벽 보강. 4라운드 선승
+밝은 벽·문·창문 판자는 총알이 뚫는다. 구멍으로 보고 쏠 수 있고, 많이 뚫리면 통째로 무너진다
+벽돌·콘크리트·강철은 안 뚫린다. 보강한 벽은 용접 폭약으로만 뚫린다</pre>
+  </details>
 </div></div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>
-'use strict';
-const $=id=>document.getElementById(id),put=(id,t)=>{const e=$(id);if(e._t!==t)e.textContent=e._t=t};
-const clamp=(v,a,b)=>v<a?a:v>b?b:v;
-const W=480,H=270,TEX=32,SW=16,SH=28;
-const cv=$('cv'),ctx=cv.getContext('2d'),img=ctx.createImageData(W,H),px=new Uint32Array(img.data.buffer),depth=new Float32Array(W*H);
-const HARD=1,REINF=2,SOFT=3,DOOR=4,RTHIN=5;   // >=SOFT: thin wall on the cell's mid-line. SOFT/DOOR are destructible.
-// # concrete  R steel  w soft wall  d barricade  P attacker spawn  e/r defender spawn (r = roaming bot)
-const MAP=[
-'############################',
-'#..........................#',
-'#.P.P......................#',
-'#..........................#',
-'#.P..#wwww#wwdww#wwwww#....#',
-'#....w....w.....R.....w....#',
-'#.P..w.e..d.....R..e..w....#',
-'#....d....w.....w.....w....#',
-'#.P..#wdww#wwdww#wwwdw#....#',
-'#....w....w.....w.....w....#',
-'#....w..e....r.....r..d....#',
-'#....w....w.....w.....w....#',
-'#....#wwww#wwdww#wwwww#....#',
-'#..........................#',
-'#..........................#',
-'############################'];
-const MW=MAP[0].length,MH=MAP.length,NC=MW*MH;
-const SITE=[17,5,22,8],inSite=(x,y)=>x>=SITE[0]&&y>=SITE[1]&&x<SITE[2]&&y<SITE[3];   // objective room: x0,y0,x1,y1
-const grid=new Uint8Array(NC),orient=new Uint8Array(NC),holeN=new Uint16Array(NC),flow=new Int16Array(NC);
-const holes=new Uint32Array(NC*TEX);          // per cell: TEX columns, each a bitmask of punched-out rows
-let spawnA=[],spawnD=[];
-function loadMap(){
-  holes.fill(0);holeN.fill(0);spawnA=[];spawnD=[];
-  const key={'#':HARD,R:REINF,w:SOFT,d:DOOR};
-  MAP.forEach((row,y)=>[...row].forEach((ch,x)=>{
-    grid[y*MW+x]=key[ch]||0;
-    if(ch==='P')spawnA.push([x+.5,y+.5]);
-    if(ch==='e'||ch==='r')spawnD.push([x+.5,y+.5,ch==='r']);
-  }));
-  for(let c=MW;c<NC-MW;c++)orient[c]=grid[c-1]&&grid[c+1]?1:0;   // 1 = wall runs along x
-}
-
-// ---------- textures & sprites (procedural, packed 0xBBGGRR) ----------
-const rgb=(r,g,b)=>clamp(b|0,0,255)<<16|clamp(g|0,0,255)<<8|clamp(r|0,0,255);
-const shade=(c,f)=>0xff000000|((c>>16&255)*f)<<16|((c>>8&255)*f)<<8|((c&255)*f);
-function mkTex(fn){const t=new Uint32Array(TEX*TEX);for(let v=0;v<TEX;v++)for(let u=0;u<TEX;u++)t[v*TEX+u]=fn(u,v,Math.random()*16-8);return t}
-const texs=[];
-texs[HARD]=mkTex((u,v,n)=>v%8===0||(u+(v>>3&1)*8)%16===0?rgb(62,62,66):rgb(118+n,118+n,124+n));
-texs[REINF]=texs[RTHIN]=mkTex((u,v,n)=>u%8===4&&v%8===4?rgb(150,150,160):v%16===0||u%16===0?rgb(28,30,36):rgb(62+n/2,68+n/2,80+n/2));
-texs[SOFT]=mkTex((u,v,n)=>u%16===0?rgb(150,135,105):v>27?rgb(120,100,75):rgb(196+n,180+n,148+n));
-texs[DOOR]=mkTex((u,v,n)=>v%6===0?rgb(58,38,22):rgb(158+n,112+n,62+n));
-const GUNC=0x101010;                           // sprite texels of this colour light up while s.flash>0
-function mkSprite(body){
-  const s=new Uint32Array(SW*SH),box=(u0,v0,u1,v1,c)=>{for(let v=v0;v<=v1;v++)for(let u=u0;u<=u1;u++)s[v*SW+u]=c};
-  box(4,17,7,27,rgb(38,38,44));box(9,17,12,27,rgb(38,38,44));
-  box(3,6,12,16,body);box(1,7,2,13,body);box(13,7,14,13,body);
-  box(5,1,10,5,rgb(214,170,130));box(5,0,10,1,rgb(30,30,34));
-  box(5,10,15,11,GUNC);
-  return s;
-}
-function mkProp(fn){const s=new Uint32Array(SW*SH);for(let v=0;v<SH;v++)for(let u=0;u<SW;u++)s[v*SW+u]=fn(u,v);return s}
-const sprites=[mkSprite(rgb(45,95,210)),mkSprite(rgb(225,120,35)),            // 0 blue team, 1 orange team (bots too)
-  mkProp((u,v)=>v<10?(u>6&&u<9&&v>4?rgb(60,255,90):0):u<3||u>12?rgb(20,20,22):rgb(74,76,84)),               // 2 drone
-  mkProp((u,v)=>v<5?(u>4&&u<11?rgb(96,96,104):0):u>5&&u<10&&v>9&&v<17?GUNC:rgb(52,56,64)),                 // 3 defuser
-  mkProp((u,v)=>v<2||v>25?rgb(40,40,46):v>19&&(u+v>>1)%4<2?rgb(235,195,30):rgb(165,42,36))];               // 4 objective container
-
-// ---------- state ----------
-const GUNS=[{n:'돌격소총',rpm:700,dmg:34,pel:1,spr:.03,hole:0,mag:30,res:120,kick:.012,auto:1},
-            {n:'산탄총',rpm:80,dmg:15,pel:8,spr:.14,hole:2,mag:6,res:24,kick:.05,auto:0}];
-// Operators: [attackers, defenders]. g = gadget name on the HUD, d = description in the menu.
-const OPS=[[{n:'돌파병',g:'돌파 폭약',gad:3,d:'돌파 폭약 ×3'},
-            {n:'해머',g:'해머',gad:8,hammer:1,d:'벽·바리케이드를 한 방에 부수는 해머 ×8'},
-            {n:'용접병',g:'용접 폭약',gad:2,thermal:1,d:'보강벽까지 뚫는 폭약 ×2'}],
-           [{n:'보강병',g:'벽 보강',gad:3,d:'벽 보강 ×3'},
-            {n:'방탄병',g:'벽 보강',gad:1,hp:150,d:'체력 150 · 벽 보강 ×1'},
-            {n:'감지병',g:'심박 감지',gad:0,sensor:1,d:'G 누르는 동안 벽 너머 적 감지'}]];
-OPS.forEach((l,i)=>l.forEach(o=>$('op'+i).add(new Option(o.n+' — '+o.d))));
-const me={id:-1,name:'',team:0,x:2.5,y:2.5,a:.5,pitch:0,z:.5,lean:0,hp:100,dead:0,gad:0,drone:0,sx:0,sy:0};   // drone: 1 driving, 2 destroyed
-const cam={x:2.5,y:2.5,a:.5,z:.5,pitch:0};      // what is rendered: me, or the teammate I'm spectating
-let mode='menu',phase='lobby',phaseEnd=0,actDur=180,atkTeam=0,score=[0,0],msg='';
-let bots=[],others={},gun=0,ammo=[30,6],res=[0,0],fov=.85,charge=-1,bfsT=0,defuser=null,holdT=0,beepT=0,specI=0,sensing=0;
-let fireT=0,reloadT=0,meleeT=0,flash=0,hitT=0,hurtT=0,boomT=0;
-const feedL=[],feed=t=>feedL.push(String(t).slice(0,40));
-const isAtk=()=>mode!=='mp'||me.team===atkTeam,side=()=>isAtk()?0:1,op=()=>OPS[side()][$('op'+side()).selectedIndex];
-const canAct=()=>!me.dead&&(phase==='act'||phase==='prep'&&!isAtk());
-const foes=()=>mode==='mp'?Object.values(others).filter(o=>o.team!==me.team):bots;
-
-// ---------- audio: filtered noise bursts, panned by direction ----------
-let ac;
-addEventListener('pointerdown',()=>{ac=ac||new AudioContext()});
-function snd(dur,vol,cut,x,y){
-  if(!ac)return;
-  const n=ac.sampleRate*dur|0,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);
-  for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n)**2;
-  const s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(),p=ac.createStereoPanner();
-  if(x!==undefined){
-    const l=Math.hypot(x-cam.x,y-cam.y);
-    vol/=1+l*.25;p.pan.value=Math.sin(Math.atan2(y-cam.y,x-cam.x)-cam.a)*Math.min(1,l);
-  }
-  s.buffer=b;g.gain.value=vol;f.frequency.value=cut;
-  s.connect(f).connect(g).connect(p).connect(ac.destination);s.start();
-}
-
-// ---------- destruction ----------
-function punch(c,ui,vi,r,net){
-  if(grid[c]!==SOFT&&grid[c]!==DOOR)return;
-  let add=0;
-  for(let a=-r;a<=r;a++)for(let b=-r;b<=r;b++){
-    const u=ui+a,v=vi+b;
-    if(a*a+b*b>r*r+r||u<0||u>=TEX||v<0||v>=TEX)continue;
-    const i=c*TEX+u,bit=1<<v;
-    if(!(holes[i]&bit)){holes[i]|=bit;add++}
-  }
-  holeN[c]+=r>4&&grid[c]===DOOR?Math.max(add,90):add;   // melee always counts on a barricade: 3 hits break it
-  if(net)send({t:'h',c,u:ui,v:vi,r});
-  if(holeN[c]>(grid[c]===DOOR?260:420))destroy(c);   // too many holes -> whole panel falls (peers derive the same)
-}
-function destroy(c,hard){                        // hard: also takes out a reinforced panel (thermal charge)
-  const g=grid[c];
-  if(g!==SOFT&&g!==DOOR&&!(hard&&g===RTHIN))return;
-  grid[c]=0;if(charge===c)charge=-1;
-  snd(.35,.6,600,c%MW+.5,(c/MW|0)+.5);
-}
-function reinforce(c,net){
-  if(grid[c]!==SOFT)return;
-  grid[c]=RTHIN;holes.fill(0,c*TEX,c*TEX+TEX);holeN[c]=0;if(charge===c)charge=-1;
-  snd(.4,.4,1500,c%MW+.5,(c/MW|0)+.5);if(net)send({t:'rf',c});
-}
-function explode(c,net,th){
-  if(net)send({t:'b',c,th:th?1:0});
-  destroy(c,th);
-  const x=c%MW+.5,y=(c/MW|0)+.5,d=Math.hypot(me.x-x,me.y-y);
-  snd(.9,1.2,350,x,y);if(Math.hypot(cam.x-x,cam.y-y)<9)boomT=.5;
-  if(d<1.8)hurt(60,'폭발');
-  for(const b of bots)if(Math.hypot(b.x-x,b.y-y)<1.8)hitBot(b,60);
-  alertBots(99);
-}
-
-// Ray through the map in 2.5D (z = height 0..1, slope = dz per unit distance). Returns distance travelled.
-// hole>=0: bullet, punches soft walls and keeps going (max 3). hole=-1: sight check, stops at the first solid texel.
-// hole=-2: reach check for hands (melee, gadgets), stops at any thin wall even where it is already holed.
-let hitC=-1,hitU=0,hitV=0;const pens=[];
-function trace(ox,oy,oz,dx,dy,slope,maxD,hole){
-  dx=dx||1e-9;dy=dy||1e-9;hitC=-1;pens.length=0;
-  if(slope)maxD=Math.min(maxD,slope<0?-oz/slope:(1-oz)/slope);        // floor / ceiling
-  let mx=ox|0,my=oy|0;const ddx=Math.abs(1/dx),ddy=Math.abs(1/dy),sx=dx<0?-1:1,sy=dy<0?-1:1;
-  let sdx=(dx<0?ox-mx:mx+1-ox)*ddx,sdy=(dy<0?oy-my:my+1-oy)*ddy;
-  for(let i=0;i<99;i++){
-    let t;if(sdx<sdy){t=sdx;sdx+=ddx;mx+=sx}else{t=sdy;sdy+=ddy;my+=sy}
-    if(t>maxD)return maxD;
-    const c=my*MW+mx,g=grid[c];
-    if(!g)continue;
-    if(g<SOFT)return t;
-    let u;
-    if(orient[c]){t=(my+.5-oy)/dy;u=ox+dx*t-mx}else{t=(mx+.5-ox)/dx;u=oy+dy*t-my}
-    if(!(u>=0&&u<1))continue;
-    if(t>maxD)return maxD;
-    const ui=u*TEX|0,vi=Math.min(TEX-1,(1-oz-slope*t)*TEX|0);
-    if(hole>-2&&holes[c*TEX+ui]>>>vi&1)continue;
-    hitC=c;hitU=ui;hitV=vi;
-    if(hole<0||g===RTHIN)return t;
-    punch(c,ui,vi,hole,1);pens.push(t);
-    if(pens.length>2)return t;
-  }
-  return maxD;
-}
-// One bullet. by: the bot that fired it (then I'm the target); otherwise it's mine.
-function bullet(ox,oy,oz,a,slope,dmg,hole,by){
-  const dx=Math.cos(a),dy=Math.sin(a),stop=trace(ox,oy,oz,dx,dy,slope,40,hole);
-  let best,bd=stop,bz;
-  for(const t of by?[{x:cam.x,y:cam.y,z:me.z,dead:me.dead,me:1}]:foes()){
-    if(t.dead||t.z<.05)continue;
-    const rx=t.x-ox,ry=t.y-oy,al=rx*dx+ry*dy;
-    if(al<=0||al>=bd||Math.abs(rx*dy-ry*dx)>.22)continue;
-    const z=oz+slope*al;if(z<0||z>t.z+.12)continue;
-    best=t;bd=al;bz=z;
-  }
-  if(!best)return;
-  for(const q of pens)if(q<bd)dmg*=.7;                 // each wall penetrated costs damage
-  if(best.me)return hurt(dmg,by.name);
-  if(bz>best.z-.08)dmg*=3;                             // headshot
-  hitFoe(best,dmg);
-}
-// ponytail: hits and wall damage are shooter-authoritative (a modified client can cheat).
-// Move validation into hostReq-style host checks if that ever matters.
-function hitFoe(t,dmg){hitT=.15;if(t.bot)hitBot(t,dmg);else send({t:'d',to:t.id,dmg})}
-function hitBot(b,d){
-  if(b.dead)return;
-  b.hp-=d;b.hitT=.12;b.alert=1;
-  if(b.hp>0)return;
-  b.dead=1;feed(me.name+' ▸ '+b.name);
-  if(bots.every(b=>b.dead))endSolo(1,'전원 제압');
-}
-function hurt(d,by){
-  if(me.dead)return;
-  if(me.drone===1&&phase==='prep'){me.drone=2;snd(.2,.5,3000);return}   // my scouting drone got shot
-  if(phase!=='act')return;
-  me.hp-=d;hurtT=.45;snd(.08,.5,500);
-  if(me.hp>0)return;
-  me.dead=1;feed(by+' ▸ '+me.name);send({t:'k',by});
-  if(mode==='solo')endSolo(0,'사망');
-}
-
-// ---------- player actions ----------
-function reload(){const g=GUNS[gun];if(reloadT<=0&&ammo[gun]<g.mag&&res[gun]){reloadT=gun?2.4:1.9;snd(.05,.2,3000)}}
-function tryFire(){
-  const g=GUNS[gun];
-  if(fireT>0||reloadT>0)return;
-  if(!ammo[gun])return reload();
-  ammo[gun]--;fireT=60/g.rpm;flash=.06;
-  const sp=g.spr*(ads?.35:1)*(moving?1.6:1);
-  for(let i=0;i<g.pel;i++)bullet(cam.x,cam.y,me.z,me.a+(Math.random()-.5)*sp,me.pitch+(Math.random()-.5)*sp,g.dmg,g.hole);
-  me.pitch=Math.min(.7,me.pitch+g.kick);me.a+=(Math.random()-.5)*g.kick;
-  snd(gun?.25:.12,.35,gun?1200:2500);send({t:'f',g:gun});alertBots(14);
-}
-const aim=r=>trace(cam.x,cam.y,me.z,Math.cos(me.a),Math.sin(me.a),me.pitch,r,-2);
-function gadget(){
-  if(!canAct())return;
-  const o=op();
-  if(charge>=0)return explode(charge,1,o.thermal);
-  if(!me.gad||o.sensor)return;
-  aim(1.6);
-  if(hitC<0)return;
-  const g=grid[hitC];
-  if(o.hammer){if(g!==RTHIN){destroy(hitC);send({t:'x',c:hitC});me.gad--;meleeT=.6;snd(.15,.6,300)}}
-  else if(isAtk()){if(g!==RTHIN||o.thermal){charge=hitC;me.gad--;snd(.05,.3,2000)}}
-  else if(g===SOFT){reinforce(hitC,1);me.gad--}
-}
-function melee(){
-  if(!canAct()||meleeT>0)return;
-  meleeT=.45;snd(.08,.4,400);
-  const dx=Math.cos(me.a),dy=Math.sin(me.a),d=aim(1.3);
-  for(const t of foes()){
-    const rx=t.x-cam.x,ry=t.y-cam.y,al=rx*dx+ry*dy;
-    if(!t.dead&&t.z>.05&&al>0&&al<Math.min(d,1.1)&&Math.abs(rx*dy-ry*dx)<.3)return hitFoe(t,999);
-  }
-  if(hitC>=0)punch(hitC,hitU,hitV,5,1);
-}
-
-// ---------- bots (solo practice only) ----------
-function alertBots(r){for(const b of bots)if(Math.hypot(b.x-me.x,b.y-me.y)<r)b.alert=1}
-function bfs(){                                   // flow field toward the player; bots may break barricades
-  flow.fill(-1);const q=[(me.y|0)*MW+(me.x|0)];flow[q[0]]=0;
-  for(let i=0;i<q.length;i++){const c=q[i];for(const n of [c-1,c+1,c-MW,c+MW])if(flow[n]<0&&(!grid[n]||grid[n]===DOOR)){flow[n]=flow[c]+1;q.push(n)}}
-}
-function updBot(b,dt){
-  b.hitT-=dt;b.flash-=dt;if(b.dead)return;
-  const dx=cam.x-b.x,dy=cam.y-b.y,d=Math.hypot(dx,dy),to=Math.atan2(dy,dx);
-  const see=!me.dead&&d<18&&(b.alert||d<2.5||Math.cos(to-b.a)>-.2)&&trace(b.x,b.y,.5,dx/d,dy/d,(me.z-.5)/d,d,-1)>=d-.01;
-  if(see){
-    if(!b.saw)b.react=.55+Math.random()*.4;      // reaction time before the first shot
-    b.alert=1;b.a=to;
-    if((b.react-=dt)<=0){
-      b.react=.14+Math.random()*.3;b.flash=.07;snd(.1,.3,1800,b.x,b.y);
-      bullet(b.x,b.y,.45,to+(Math.random()-.5)*.13,(me.z-.65)/d+(Math.random()-.5)*.07,11,0,b);
-    }
-  }else if(b.alert&&b.roam){
-    const c=(b.y|0)*MW+(b.x|0);let n=c;
-    for(const k of [c-1,c+1,c-MW,c+MW])if(flow[k]>=0&&(flow[n]<0||flow[k]<flow[n]))n=k;
-    if(n!==c){
-      const tx=n%MW+.5,ty=(n/MW|0)+.5,l=Math.hypot(tx-b.x,ty-b.y);b.a=Math.atan2(ty-b.y,tx-b.x);
-      if(grid[n]){if((b.brk+=dt)>.8){destroy(n);b.brk=0}}
-      else{b.x+=(tx-b.x)/l*1.6*dt;b.y+=(ty-b.y)/l*1.6*dt}
-    }
-  }
-  b.saw=see;
-}
-
-// ---------- round flow ----------
-function resetMe(){
-  const o=op();
-  me.hp=o.hp||100;me.gad=o.gad;me.dead=0;me.pitch=me.lean=0;me.z=.5;me.a=Math.atan2(MH/2-me.y,MW/2-me.x);
-  me.sx=me.x;me.sy=me.y;me.drone=mode==='mp'&&isAtk()?1:0;      // attackers scout by drone during prep
-  gun=0;ammo=GUNS.map(g=>g.mag);res=GUNS.map(g=>g.res);reloadT=holdT=0;
-}
-function newRound(){loadMap();charge=-1;defuser=null;msg='';feedL.length=0}
-function startSolo(){
-  mode='solo';newRound();me.team=atkTeam=0;[me.x,me.y]=spawnA[0];resetMe();
-  bots=spawnD.map(([x,y,roam],i)=>({x,y,z:.5,a:Math.random()*7,hp:100,roam,bot:1,name:'봇'+(i+1),react:0,alert:0,saw:0,brk:0,flash:0,hitT:0}));
-  phase='act';phaseEnd=Date.now()+180e3;showMenu(0);
-}
-function endSolo(win,why){phase='end';phaseEnd=Date.now()+1500;msg=(win?'승리':'패배')+' — '+why+'\n클릭해서 다시 시작'}
-function showMenu(on){$('menu').hidden=!on;if(on&&document.pointerLockElement)document.exitPointerLock()}
-const err=t=>{$('err').textContent=t};
-
-// ---------- multiplayer: star topology over WebRTC, the host's browser relays and referees ----------
-// ponytail: signalling and TURN relay are PeerJS's free public servers — best effort, no uptime promise.
-// Upgrade path: own PeerServer + TURN (pass {host,config} to new Peer), or swap this section for a WebSocket relay.
-const ROOM='breach-fps-',room=new URLSearchParams(location.search).get('room');
-const EV=['h','x','rf','b','d','k','f'];           // game events a client may send; host relays them to everyone
-const REQ=['pl','df','team'];                      // requests only the host decides on
-let peer,hostConn,isHost=0,roster=[],nextId=1,roundSize=[0,0];
-const conns={},snap={},seen={};
-const myName=()=>($('nm').value.trim()||'플레이어'+(Math.random()*900+100|0)).slice(0,12);
-const nameOf=id=>id===me.id?me.name:others[id]?others[id].name:'?';
-const okCell=c=>Number.isInteger(c)&&c>=0&&c<NC;
-const okState=v=>Array.isArray(v)&&v.length===4&&v.every(n=>typeof n==='number');
-function send(m){
-  if(mode!=='mp')return;
-  m.id=me.id;
-  if(isHost)relay(m,me.id);else if(hostConn&&hostConn.open)hostConn.send(m);
-}
-const request=m=>mode==='mp'&&!isHost?hostConn&&hostConn.open&&hostConn.send(m):hostReq(m,me.id);
-function relay(m,from){for(const id in conns)if(+id!==from&&conns[id].open)conns[id].send(m)}
-function toAll(m){relay(m,-1);onNet(m)}
-function applyState(id,v){
-  const o=others[id],now=Date.now();if(!o||!okState(v))return;
-  if(!o.dead&&v[3]>.2&&now-o.stepT>330&&Math.hypot(v[0]-o.tx,v[1]-o.ty)>.13){o.stepT=now;snd(.07,.35,260,v[0],v[1])}   // footsteps: walking or faster
-  o.tx=v[0];o.ty=v[1];o.a=v[2];o.z=clamp(v[3],0,.5);
-}
-function onNet(m){
-  if(!m||typeof m!=='object')return;
-  const c=m.c,o=others[m.id];
-  switch(m.t){
-    case 'h':if(okCell(c))punch(c,m.u|0,m.v|0,Math.min(6,m.r|0));break;
-    case 'x':if(okCell(c))destroy(c);break;
-    case 'b':if(okCell(c))explode(c,0,m.th);break;
-    case 'rf':if(okCell(c))reinforce(c);break;
-    case 'd':if(m.to===me.id)hurt(clamp(+m.dmg||0,0,999),nameOf(m.id));break;
-    case 'k':if(o){o.dead=1;feed(String(m.by).slice(0,12)+' ▸ '+o.name)}break;
-    case 'f':if(o){o.flash=.08;snd(m.g?.25:.12,.35,m.g?1200:2500,o.x,o.y)}break;
-    case 'S':for(const id in m.p)if(+id!==me.id)applyState(id,m.p[id]);break;
-    case 'hi':me.id=m.id;break;
-    case 'full':err('방이 가득 찼습니다 (최대 10명)');break;
-    case 'lobby':
-      roster=m.roster;score=m.score;
-      for(const p of roster){
-        if(p.id===me.id){me.team=p.team;me.name=p.name;continue}
-        const q=others[p.id]||(others[p.id]={id:p.id,x:0,y:0,tx:0,ty:0,a:0,av:0,z:.5,dead:1,flash:0,stepT:0});
-        q.name=p.name;q.team=p.team;
-      }
-      for(const id in others)if(!roster.some(p=>p.id===+id))delete others[id];
-      drawLobby();break;
-    case 'round':
-      newRound();atkTeam=m.atk;actDur=m.act;phase='prep';phaseEnd=Date.now()+m.prep*1e3;
-      me.dead=1;me.drone=0;for(const id in others)others[id].dead=1;
-      for(const [id,slot] of m.sp){
-        const p=id===me.id?me:others[id];if(!p)continue;
-        const s=(p.team===atkTeam?spawnA:spawnD)[slot%5];
-        p.x=p.tx=s[0];p.y=p.ty=s[1];p.dead=0;
-      }
-      if(!me.dead)resetMe();
-      showMenu(0);break;
-    case 'phase':
-      phase='act';phaseEnd=Date.now()+actDur*1e3;
-      if(me.drone){me.drone=0;me.x=me.sx;me.y=me.sy;me.z=.5;me.pitch=0;me.a=Math.atan2(MH/2-me.y,MW/2-me.x)}   // back from the drone to the body
-      break;
-    case 'planted':
-      defuser={x:+m.x,y:+m.y,prop:3,h:.16,w:.26,flash:0};phaseEnd=Date.now()+30e3;
-      feed(String(m.by).slice(0,12)+' 디퓨저 설치');snd(.3,.6,3000,defuser.x,defuser.y);alertBots(99);break;
-    case 'end':phase='end';phaseEnd=Date.now()+6e3;score=m.score;msg=['블루','오렌지'][m.win]+' 팀 승리 — '+m.why;break;
-    case 'match':
-      phase='lobby';score=[0,0];msg='';$('res').textContent=['블루','오렌지'][m.win]+' 팀 매치 승리!';showMenu(1);break;
-  }
-}
-// Host-side referee for objective and lobby requests (also used locally in solo).
-function hostReq(m,id){
-  const p=id===me.id?me:others[id];if(!p)return;
-  if(m.t==='team'){
-    const r=roster.find(q=>q.id===id);
-    if(phase==='lobby'&&r&&roster.filter(q=>q.team!==r.team).length<5){r.team^=1;syncLobby()}
-    return;
-  }
-  if(p.dead||phase!=='act')return;
-  if(m.t==='pl'&&!defuser&&p.team===atkTeam&&typeof m.x==='number'&&typeof m.y==='number'&&inSite(m.x,m.y))
-    toAll({t:'planted',x:m.x,y:m.y,by:nameOf(id)});
-  if(m.t==='df'&&defuser&&p.team!==atkTeam)endMP(1-atkTeam,'디퓨저 해제');
-}
-function syncLobby(){toAll({t:'lobby',roster,score})}
-function drop(id){
-  const c=conns[id];if(!c)return;
-  delete conns[id];delete snap[id];delete seen[id];c.close();
-  roster=roster.filter(p=>p.id!==id);syncLobby();
-}
-function onConn(c){
-  c.on('data',m=>{
-    if(!m||typeof m!=='object')return;
-    if(c.pid===undefined){
-      if(m.t!=='join')return;
-      if(roster.length>=10)return c.send({t:'full'});
-      const id=c.pid=nextId++,n=t=>roster.filter(p=>p.team===t).length;
-      conns[id]=c;seen[id]=Date.now();
-      roster.push({id,name:String(m.name||'팬'+id).slice(0,12),team:n(0)<=n(1)?0:1});
-      c.send({t:'hi',id});syncLobby();
-    }else if(m.t==='s'){if(okState(m.v)){seen[c.pid]=Date.now();snap[c.pid]=m.v;applyState(c.pid,m.v)}}
-    else if(EV.includes(m.t)){m.id=c.pid;relay(m,c.pid);onNet(m)}
-    else if(REQ.includes(m.t))hostReq(m,c.pid);
-  });
-  c.on('close',()=>drop(c.pid));
-}
-function host(){
-  if(!window.Peer)return err('멀티플레이 라이브러리 로드 실패 — 인터넷 연결 확인');
-  const code=Math.random().toString(36).slice(2,7);
-  $('bHost').disabled=true;peer=new Peer(ROOM+code);
-  peer.on('error',e=>err('연결 오류: '+e.type));
-  peer.on('connection',onConn);
-  peer.on('open',()=>{
-    isHost=1;mode='mp';me.id=0;me.name=myName();
-    $('link').value=location.href.split(/[?#]/)[0]+'?room='+code;
-    roster=[{id:0,name:me.name,team:0}];syncLobby();showLobby();
-  });
-}
-function join(){
-  if(!window.Peer)return err('멀티플레이 라이브러리 로드 실패 — 인터넷 연결 확인');
-  $('bJoin').disabled=true;peer=new Peer();
-  peer.on('error',e=>err(e.type==='peer-unavailable'?'방을 찾을 수 없습니다 (호스트가 나갔거나 링크 오류)':'연결 오류: '+e.type));
-  peer.on('open',()=>{
-    hostConn=peer.connect(ROOM+room,{reliable:true,serialization:'json'});
-    hostConn.on('open',()=>{mode='mp';me.name=myName();$('link').value=location.href;hostConn.send({t:'join',name:me.name});showLobby()});
-    hostConn.on('data',onNet);
-    hostConn.on('close',()=>{phase='lobby';showMenu(1);err('호스트와 연결이 끊겼습니다 — 새로고침하세요')});
-  });
-}
-function startRound(){
-  const slot=[0,0];roundSize=[0,0];
-  const sp=roster.map(p=>(roundSize[p.team]++,[p.id,slot[p.team]++]));
-  toAll({t:'round',atk:atkTeam,sp,prep:25,act:180});
-}
-function endMP(win,why){score[win]++;toAll({t:'end',win,why,score})}
-function hostTick(){
-  const now=Date.now(),def=1-atkTeam,alive=t=>roster.filter(p=>p.team===t&&!(p.id===me.id?me:others[p.id]).dead).length;
-  for(const id in seen)if(now-seen[id]>15e3)drop(+id);          // ghost players (tab closed without a clean close)
-  if(phase==='prep'&&now>phaseEnd)toAll({t:'phase'});
-  else if(phase==='act'){
-    if(roundSize[def]&&!alive(def))endMP(atkTeam,'방어팀 전멸');
-    else if(defuser){if(now>phaseEnd)endMP(atkTeam,'디퓨저 작동 완료')}     // once planted, only a disable or the timer ends it
-    else if(roundSize[atkTeam]&&!alive(atkTeam))endMP(def,'공격팀 전멸');
-    else if(now>phaseEnd)endMP(def,'시간 종료');
-  }else if(phase==='end'&&now>phaseEnd){
-    if(Math.max(...score)>=4){toAll({t:'match',win:score[0]>score[1]?0:1});syncLobby()}   // first to 4 rounds
-    else{atkTeam=def;startRound()}                                                        // swap sides every round
-  }
-}
-setInterval(()=>{                                                  // 15 Hz net tick (timers survive background tabs)
-  if(mode!=='mp')return;
-  const v=[me.x,me.y,me.a,me.drone===2?0:me.z].map(n=>+n.toFixed(2));
-  if(!me.drone){v[0]=+cam.x.toFixed(2);v[1]=+cam.y.toFixed(2)}     // leaning moves what others can hit
-  if(isHost){snap[0]=v;relay({t:'S',p:snap},-1);hostTick()}
-  else if(hostConn&&hostConn.open)hostConn.send({t:'s',v});
-},66);
-function showLobby(){$('home').hidden=true;$('lobby').hidden=false;err('')}
-function drawLobby(){
-  for(const t of [0,1]){
-    const ul=$('t'+t);ul.textContent='';
-    for(const p of roster)if(p.team===t){const li=document.createElement('li');li.textContent=p.name+(p.id===me.id?' (나)':'')+(p.id===0?' ★':'');ul.append(li)}
-  }
-  $('bStart').hidden=!isHost;
-  $('wait').textContent=isHost?'링크를 공유하고, 다 모이면 시작. 라운드마다 공수 교대, 4라운드 선승.':'호스트가 시작하면 게임이 열립니다. 진행 중이면 다음 라운드부터 참가.';
-}
-
-// ---------- input ----------
-const keys={};let trig=0,fresh=0,ads=0,moving=0;
-const locked=()=>document.pointerLockElement===cv;
-addEventListener('keydown',e=>{
-  if(!locked())return;
-  e.preventDefault();if(e.repeat)return;keys[e.code]=1;
-  if(e.code==='KeyR')reload();
-  if(e.code==='KeyG')gadget();
-  if(e.code==='KeyV')melee();
-  if(e.code==='Digit1'||e.code==='Digit2'){gun=+e.code[5]-1;reloadT=0}
-  if(e.code==='KeyO'&&phase==='prep'&&!me.dead){                    // switch operator while the round is still in prep
-    const s=$('op'+side());s.selectedIndex=(s.selectedIndex+1)%s.length;
-    me.gad=op().gad;me.hp=op().hp||100;
-  }
-});
-addEventListener('keyup',e=>keys[e.code]=0);
-addEventListener('mousemove',e=>{if(!locked())return;const s=ads?.0013:.0022;me.a+=e.movementX*s;me.pitch=clamp(me.pitch-e.movementY*s,-.7,.7)});
-addEventListener('mousedown',e=>{if(!locked())return;if(e.button===0)trig=fresh=1;if(e.button===2)ads=1});
-addEventListener('mouseup',e=>{if(e.button===0)trig=0;if(e.button===2)ads=0});
-addEventListener('contextmenu',e=>e.preventDefault());
-document.addEventListener('pointerlockchange',()=>{if(!locked()){for(const k in keys)keys[k]=0;trig=ads=0}});
-cv.onclick=()=>{
-  if(mode==='solo'&&phase==='end'&&Date.now()>phaseEnd)startSolo();
-  if(me.dead)specI++;
-  if(mode!=='menu'&&phase!=='lobby')cv.requestPointerLock();
-};
-$('bSolo').onclick=()=>{me.name=myName();startSolo();cv.requestPointerLock()};
-$('bHost').onclick=host;$('bJoin').onclick=join;
-$('bStart').onclick=()=>{$('res').textContent='';startRound();cv.requestPointerLock()};
-$('bTeam').onclick=()=>request({t:'team'});
-$('bCopy').onclick=()=>navigator.clipboard.writeText($('link').value);
-if(room){$('bJoin').hidden=false;$('bHost').hidden=true}
-
-// ---------- update ----------
-const solid=(x,y,dr)=>{const g=grid[(y|0)*MW+(x|0)];return g&&!(dr&&g===DOOR)};     // drones slip under barricades
-const free=(x,y,dr)=>!(solid(x-.2,y-.2,dr)||solid(x+.2,y-.2,dr)||solid(x-.2,y+.2,dr)||solid(x+.2,y+.2,dr));
-function viewTarget(){                                               // dead in a match: watch a living teammate
-  if(!me.dead||mode!=='mp'||phase==='lobby')return null;
-  const m=Object.values(others).filter(o=>o.team===me.team&&!o.dead&&o.z>.05);
-  return m.length?m[specI%m.length]:null;
-}
-function update(dt){
-  fireT-=dt;meleeT-=dt;flash-=dt;hitT-=dt;hurtT-=dt;boomT-=dt;
-  if(reloadT>0&&(reloadT-=dt)<=0){const n=Math.min(GUNS[gun].mag-ammo[gun],res[gun]);ammo[gun]+=n;res[gun]-=n}
-  const act=canAct(),drone=me.drone===1,f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0),ca=Math.cos(me.a),sa=Math.sin(me.a);
-  moving=(act||drone)&&(f||s)?1:0;
-  if(moving){
-    const sp=(drone?3.6:ads?1.6:keys.KeyC?1.4:keys.ShiftLeft?4.2:2.8)*dt/Math.hypot(f,s);
-    const nx=me.x+(ca*f-sa*s)*sp,ny=me.y+(sa*f+ca*s)*sp;
-    if(free(nx,me.y,drone))me.x=nx;if(free(me.x,ny,drone))me.y=ny;
-  }
-  me.z+=((me.drone?.1:keys.KeyC?.3:.5)-me.z)*Math.min(1,dt*12);
-  me.lean+=((act?(keys.KeyE?1:0)-(keys.KeyQ?1:0):0)-me.lean)*Math.min(1,dt*10);
-  fov+=((ads&&act?.55:.85)-fov)*Math.min(1,dt*14);
-  sensing=act&&op().sensor&&keys.KeyG?1:0;
-  // objective: hold F to plant (attackers, inside the site) or disable (defenders, next to the defuser)
-  const hold=act&&phase==='act'&&keys.KeyF&&!moving&&(isAtk()?!defuser&&inSite(me.x,me.y):defuser&&Math.hypot(me.x-defuser.x,me.y-defuser.y)<1.3);
-  if(!hold)holdT=0;
-  else if((holdT+=dt)>=4){holdT=0;request(isAtk()?{t:'pl',x:me.x,y:me.y}:{t:'df'})}
-  if(trig&&act&&!holdT&&!sensing&&(GUNS[gun].auto||fresh))tryFire();
-  fresh=0;
-  if(defuser&&phase==='act'){defuser.flash=Date.now()&256?1:0;if((beepT-=dt)<0){beepT=1;snd(.05,.5,5000,defuser.x,defuser.y)}}
-  if(mode==='solo'&&phase==='act'){
-    if((bfsT-=dt)<0){bfsT=.4;bfs()}
-    for(const b of bots)updBot(b,dt);
-    if(phase==='act'&&Date.now()>phaseEnd)defuser?endSolo(1,'디퓨저 작동 완료'):endSolo(0,'시간 초과');
-  }
-  for(const id in others){
-    const o=others[id],k=Math.min(1,dt*14);
-    o.x+=(o.tx-o.x)*k;o.y+=(o.ty-o.y)*k;o.av+=Math.atan2(Math.sin(o.a-o.av),Math.cos(o.a-o.av))*k;o.flash-=dt;
-  }
-  const sp=viewTarget();
-  if(sp){cam.x=sp.x;cam.y=sp.y;cam.a=sp.av;cam.z=sp.z;cam.pitch=0}
-  else{
-    cam.a=me.a;cam.z=me.z;cam.pitch=me.pitch;cam.x=me.x-sa*me.lean*.35;cam.y=me.y+ca*me.lean*.35;
-    if(grid[(cam.y|0)*MW+(cam.x|0)]&&!me.drone){cam.x=me.x;cam.y=me.y}
-  }
-}
-
-// ---------- render: raycaster with see-through layers for holed walls ----------
-const LT=new Float32Array(8),LU=new Float32Array(8),LC=new Int32Array(8),LS=new Uint8Array(8),labels=[];
-const crate={x:20.6,y:5.4,prop:4,h:.42,w:.42};                       // marks the objective room
-function wallCol(x,t,u,c,side,proj,hor){
-  const g=grid[c],lh=proj/t,top=hor-lh*(1-cam.z),tex=texs[g],ui=u*TEX|0,k=TEX/lh;
-  const f=Math.min(1,1.7/(1+t*.35))*(side?.78:1),hm=g>=SOFT?holes[c*TEX+ui]:0,ch=c===charge&&ui>11&&ui<20;
-  const y1=Math.min(H-1,top+lh|0);
-  for(let y=Math.max(0,Math.ceil(top));y<=y1;y++){
-    let vi=(y-top)*k|0,p;if(vi>TEX-1)vi=TEX-1;
-    if(ch&&vi>12&&vi<19)p=Date.now()&256&&vi<15&&ui>14&&ui<17?0xff2020ff:0xff181818;   // breach charge, blinking light
-    else if(hm>>>vi&1)continue;
-    else p=shade(tex[vi*TEX+ui],f);
-    px[y*W+x]=p;depth[y*W+x]=t;
-  }
-}
-function render(){
-  const proj=W/2/fov,ca=Math.cos(cam.a),sa=Math.sin(cam.a),plX=-sa*fov,plY=ca*fov,hor=H/2+cam.pitch*proj;
-  for(let y=0;y<H;y++)px.fill(shade(y<hor?0x38302c:0x283848,Math.min(1,Math.abs(y-hor)/H*2.2+.12)),y*W,y*W+W);
-  depth.fill(1e9);
-  for(let x=0;x<W;x++){
-    const cx=2*x/W-1,rdx=ca+plX*cx||1e-9,rdy=sa+plY*cx||1e-9;
-    let mx=cam.x|0,my=cam.y|0,n=0;
-    const ddx=Math.abs(1/rdx),ddy=Math.abs(1/rdy),sx=rdx<0?-1:1,sy=rdy<0?-1:1;
-    let sdx=(rdx<0?cam.x-mx:mx+1-cam.x)*ddx,sdy=(rdy<0?cam.y-my:my+1-cam.y)*ddy;
-    for(let i=0;i<99;i++){
-      let t,side,u;
-      if(sdx<sdy){t=sdx;sdx+=ddx;mx+=sx;side=0}else{t=sdy;sdy+=ddy;my+=sy;side=1}
-      const c=my*MW+mx,g=grid[c];
-      if(!g)continue;
-      if(g>=SOFT){
-        if(orient[c]){t=(my+.5-cam.y)/rdy;u=cam.x+rdx*t-mx;side=1}else{t=(mx+.5-cam.x)/rdx;u=cam.y+rdy*t-my;side=0}
-        if(!(u>=0&&u<1))continue;
-      }else{u=side?cam.x+rdx*t:cam.y+rdy*t;u-=Math.floor(u)}
-      LT[n]=t;LU[n]=u;LC[n]=c;LS[n]=side;n++;
-      if(g<SOFT||n===8||!holes[c*TEX+(u*TEX|0)])break;     // keep going only through columns that have holes
-    }
-    while(n--)wallCol(x,LT[n],LU[n],LC[n],LS[n],proj,hor);  // back to front
-  }
-  const list=[];labels.length=0;
-  for(const s of [crate,...(defuser?[defuser]:[]),...bots,...Object.values(others)]){
-    if(!s.prop&&!s.bot&&s.z<.05)continue;                   // destroyed drone
-    const dx=s.x-cam.x,dy=s.y-cam.y;s._d=dx*ca+dy*sa;s._s=dy*ca-dx*sa;
-    if(s._d>.15)list.push(s);
-  }
-  list.sort((a,b)=>b._d-a._d);
-  for(const s of list){
-    let spr=sprites[s.bot?1:s.team],hgt=s.z+.12,wid=hgt*SW/SH,dim=1;
-    if(s.prop){spr=sprites[s.prop];hgt=s.h;wid=s.w}
-    else if(s.z<.2){spr=sprites[2];hgt=.1;wid=.24}          // a player driving a drone
-    else if(s.dead){hgt=.12;wid=.6;dim=.5}
-    const d=s._d,lh=proj/d,sx=W/2+s._s/d*proj,bot=hor+lh*cam.z;
-    const top=bot-lh*hgt,w=lh*wid,x0=sx-w/2,x1=Math.min(W,x0+w),y1=Math.min(H,bot);
-    const f=Math.min(1,1.7/(1+d*.35))*dim,fl=s.flash>0&&!s.dead;
-    for(let x=Math.max(0,x0|0);x<x1;x++){
-      const u=(x-x0)/w*SW|0;
-      for(let y=Math.max(0,top|0);y<y1;y++){
-        const i=y*W+x;if(depth[i]<d)continue;
-        let c=spr[((y-top)/(bot-top)*SH|0)*SW+u];if(!c)continue;
-        if(c===GUNC&&fl)c=0x60f0ff;
-        px[i]=s.hitT>0?0xffffffff:shade(c,f);
-      }
-    }
-    if(s.prop||s.dead)continue;
-    if(!s.bot&&s.team===me.team)labels.push(['▼ '+s.name,sx,top-3,'#9cf']);                               // teammates show through walls
-    else if(sensing&&Math.hypot(s.x-me.x,s.y-me.y)<7)labels.push(['♥',sx,(top+bot)/2,'#f44']);            // heartbeat sensor
-  }
-  ctx.putImageData(img,0,0);
-  ctx.font='bold 9px sans-serif';ctx.textAlign='center';
-  for(const [n,x,y,col] of labels){ctx.fillStyle=col;ctx.fillText(n,x,clamp(y,9,H-2))}
-  if(me.drone){ctx.fillStyle='rgba(40,255,120,.07)';ctx.fillRect(0,0,W,H)}
-  else if(!me.dead&&mode!=='menu'){
-    const a=clamp((.85-fov)/.3,0,1),gx=W/2+(1-a)*85,gy=H-60-a*16+(reloadT>0||sensing||holdT>0?45:0)+(meleeT>0?-20:0)+Math.max(0,fireT)*40;
-    ctx.fillStyle='#1c1c1e';ctx.beginPath();ctx.moveTo(gx-4,gy);ctx.lineTo(gx+4,gy);ctx.lineTo(gx+26,H);ctx.lineTo(gx-22,H);ctx.fill();
-    ctx.fillStyle='#3a3a3e';ctx.fillRect(gx-2,gy-5,4,6);
-    if(flash>0){ctx.fillStyle='#fd6';ctx.beginPath();ctx.arc(gx,gy-7,8+Math.random()*5,0,7);ctx.fill()}
-    ctx.fillStyle=hitT>0?'#f44':'#fff';
-    if(a<.5){const g=4+moving*4;ctx.fillRect(W/2-g-4,H/2,4,1);ctx.fillRect(W/2+g+1,H/2,4,1);ctx.fillRect(W/2,H/2-g-4,1,4);ctx.fillRect(W/2,H/2+g+1,1,4)}
-    else ctx.fillRect(W/2-1,H/2-1,2,2);
-  }
-  if(hurtT>0){ctx.fillStyle=`rgba(200,0,0,${hurtT})`;ctx.fillRect(0,0,W,H)}
-  if(boomT>0){ctx.fillStyle=`rgba(255,240,210,${boomT*1.6})`;ctx.fillRect(0,0,W,H)}
-  if(me.dead&&mode!=='menu'&&phase!=='lobby'&&!viewTarget()){ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,W,H)}
-  cv.style.transform=`rotate(${me.lean*4}deg) scale(${1+Math.abs(me.lean)*.1})`;
-}
-function hud(){
-  if(mode==='menu'||phase==='lobby'){for(const id of ['tl','tr','bl','br','mid'])put(id,'');return}
-  const s=Math.max(0,(phaseEnd-Date.now())/1000|0),clock=(s/60|0)+':'+String(s%60).padStart(2,'0'),o=op();
-  put('tl',(mode==='solo'?'남은 적 '+bots.filter(b=>!b.dead).length:`블루 ${score[0]} : ${score[1]} 오렌지 · ${isAtk()?'공격':'방어'}`)+'\n'
-    +(phase==='end'?'':defuser?'디퓨저 작동까지 '+clock:{prep:'준비 ',act:'교전 '}[phase]+clock));
-  put('tr',feedL.slice(-5).join('\n'));
-  put('bl','HP '+Math.max(0,me.hp|0));
-  put('br',me.drone?'드론':GUNS[gun].n+' '+(reloadT>0?'장전 중':ammo[gun]+' / '+res[gun])+'\n'+o.n+' · '+o.g+(o.sensor?'':' ×'+me.gad));
-  let m=msg;
-  if(phase!=='end'){
-    const sp=viewTarget();
-    if(me.dead)m=sp?'관전: '+sp.name+' (클릭하면 다음 팀원)':'사망 — 다음 라운드 대기';
-    else if(!locked())m='화면을 클릭하면 조작 시작';
-    else if(holdT>0)m=(isAtk()?'디퓨저 설치 중 ':'디퓨저 해제 중 ')+'█'.repeat(holdT*2.5|0).padEnd(10,'░');
-    else if(phase==='prep')m=(!isAtk()?'준비 단계 — 벽 보강·구멍 뚫기 가능':me.drone===1?'준비 단계 — 드론 정찰 (바리케이드 밑으로 통과)':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경';
-    else if(charge>=0)m='[G] 폭약 기폭';
-    else if(isAtk()&&!defuser&&inSite(me.x,me.y))m='목표 구역 — [F] 꾹 눌러 디퓨저 설치';
-    else if(!isAtk()&&defuser&&Math.hypot(me.x-defuser.x,me.y-defuser.y)<1.3)m='[F] 꾹 눌러 디퓨저 해제';
-    else if(sensing)m='심박 감지 중';
-    else{
-      aim(1.6);const g=grid[hitC],v=' · [V] 타격';
-      m=hitC<0||!me.gad?'':o.hammer?(g!==RTHIN?'[G] 해머'+v:''):isAtk()?(g!==RTHIN||o.thermal?'[G] '+o.g+v:''):g===SOFT?'[G] 벽 보강'+v:'';
-    }
-  }
-  put('mid',m);
-}
-
-// ---------- self-check: open index.html#test and read the console ----------
-function selfTest(){
-  loadMap();
-  console.assert(MAP.every(r=>r.length===MW)&&spawnA.length===5&&spawnD.length===5,'map shape');
-  console.assert(inSite(19.5,6.5)&&!inSite(13.5,6.5)&&!grid[(crate.y|0)*MW+(crate.x|0)],'objective room');
-  const c=4*MW+7,sight=()=>trace(7.5,2.5,.5,0,1,0,5,-1);        // soft wall in the north face, seen from outside
-  console.assert(grid[c]===SOFT&&orient[c]===1,'soft wall where expected');
-  console.assert(Math.abs(sight()-2)<1e-6&&hitC===c,'intact wall blocks sight');
-  trace(7.5,2.5,.5,0,1,0,5,0);
-  console.assert(holeN[c]===1&&sight()===5,'bullet hole opens a sight line');
-  for(let i=0;i<9;i++)punch(c,5+i%3*11,5+(i/3|0)*11,5);
-  console.assert(grid[c]===0,'heavily holed wall collapses');
-  reinforce(c+1);trace(8.5,2.5,.5,0,1,0,5,0);
-  console.assert(grid[c+1]===RTHIN&&holeN[c+1]===0,'reinforced wall stops bullets');
-  destroy(c+1);console.assert(grid[c+1]===RTHIN,'normal breach leaves reinforced wall');
-  destroy(c+1,1);console.assert(grid[c+1]===0,'thermal breach opens reinforced wall');
-  loadMap();console.log('selfTest done');
-}
-
-loadMap();
-if(location.hash==='#test')selfTest();
-let last=performance.now();
-requestAnimationFrame(function frame(now){
-  const dt=Math.min(.05,(now-last)/1000);last=now;
-  update(dt);render();hud();
-  requestAnimationFrame(frame);
-});
-</script>
+<script src="js/core.js"></script>
+<script src="js/gfx.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/game.js"></script>
+<script src="js/net.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
