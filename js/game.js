@@ -25,7 +25,8 @@ let mode='menu',phase='lobby',phaseEnd=0,actDur=180,atkTeam=0,score=[0,0],msg=''
 let bots=[],others={},gun=0,ammo=[0,0],res=[0,0],fov=cfg.fov,charge=-1,bfsT=0,defuser=null,holdT=0,beepT=0,specI=0,sensing=0,flashT=0;
 let fireT=0,reloadT=0,meleeT=0,nadeT=0,muzzle=0,hitT=0,hitHS=0,hurtT=0,hurtA=0,boomT=0,killT=0,bob=0,deathMsg='',feedV=0;
 const feedL=[],stats={},pings=[],traps={};
-const isAtk=()=>mode!=='mp'||me.team===atkTeam,side=()=>isAtk()?0:1,op=()=>OPS[side()][cfg.ops[side()]];
+me.op=OPS[0][cfg.ops[0]];                        // the operator I'm equipped as; a menu pick only takes effect at the next loadout
+const isAtk=()=>mode!=='mp'||me.team===atkTeam,side=()=>isAtk()?0:1,op=()=>me.op;
 const canAct=()=>!me.dead&&(phase==='act'||phase==='prep'&&!isAtk());
 const foes=()=>mode==='mp'?Object.values(others).filter(o=>o.team!==me.team):bots;
 const curGun=()=>GUNS[me.guns[gun]];
@@ -174,7 +175,7 @@ function updBot(b,dt){
 
 // ---------- round flow ----------
 function loadout(){
-  const o=op();
+  const o=me.op=OPS[side()][cfg.ops[side()]];
   me.guns=o.guns;gun=0;ammo=o.guns.map(k=>GUNS[k].mag);res=o.guns.map(k=>GUNS[k].res);
   me.hp=me.maxHp=o.hp||100;me.gad=o.gad;me.nn=o.nn||0;reloadT=0;
 }

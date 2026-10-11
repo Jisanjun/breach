@@ -60,6 +60,7 @@ button.alt{background:#2a2d35;border-color:#444}
 #teams{display:flex;gap:16px}#teams>div{flex:1}ul{margin:4px 0;padding-left:18px;min-height:56px}
 details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color:#ccc}
 #help{margin:6px 0 0;white-space:pre-wrap;font-family:inherit}
+#ver{color:#556;font-size:11px;text-align:right;margin-top:6px}
 #err{color:#f88;margin:8px 0 0;min-height:1em}#res{color:#fd6;font-weight:700}
 </style>
 </head>
@@ -122,16 +123,14 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 밝은 벽·문·창문 판자는 총알이 뚫는다. 구멍으로 보고 쏠 수 있고, 많이 뚫리면 통째로 무너진다
 벽돌·콘크리트·강철은 안 뚫린다. 보강한 벽은 용접 폭약으로만 뚫린다</pre>
   </details>
+  <div id="ver"></div>
 </div></div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/core.js"></script>
-<script src="js/gfx.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/world.js"></script>
-<script src="js/game.js"></script>
-<script src="js/net.js"></script>
-<script src="js/render.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
+<script>
+// One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
+// Bump V on each release. On localhost it changes every load so edits always show up.
+const V=location.hostname==='localhost'?Date.now():'3.1';
+for(const f of ['core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
+</script>
 </body>
 </html>

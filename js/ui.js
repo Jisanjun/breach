@@ -2,6 +2,7 @@
 // Input, HUD (DOM over the canvas), menus and settings.
 const keys={};let trig=0,fresh=0,ads=0,moving=0;
 const locked=()=>document.pointerLockElement===cv;
+function lockPointer(){const p=cv.requestPointerLock();if(p&&p.catch)p.catch(()=>{})}   // the browser may refuse (e.g. Esc pressed a moment ago); the prompt stays up
 const put=(id,t)=>{const e=$(id);if(e._t!==t)e.textContent=e._t=t};
 const setW=(id,p)=>{const e=$(id);p=p.toFixed(1)+'%';if(e._w!==p)e.style.width=e._w=p};
 const err=t=>{$('err').textContent=t};
@@ -53,12 +54,12 @@ for(const [id,key,lo,hi] of [['sSens','sens',.2,3],['sVol','vol',0,1],['sFov','f
   const e=$(id);e.min=lo;e.max=hi;e.step=.01;e.value=cfg[key];
   e.oninput=()=>{cfg[key]=clamp(+e.value,lo,hi);saveCfg();if(master)master.gain.value=cfg.vol};
 }
-$('bSolo').onclick=()=>{me.name=myName();startSolo();cv.requestPointerLock()};
+$('bSolo').onclick=()=>{me.name=myName();startSolo();lockPointer()};
 $('bHost').onclick=host;$('bJoin').onclick=join;
-$('bStart').onclick=()=>{$('res').textContent='';startRound();cv.requestPointerLock()};
+$('bStart').onclick=()=>{$('res').textContent='';startRound();lockPointer()};
 $('bTeam').onclick=()=>request({t:'team'});
 $('bCopy').onclick=()=>navigator.clipboard.writeText($('link').value).then(()=>{$('bCopy').textContent='복사됨';setTimeout(()=>$('bCopy').textContent='초대 링크 복사',1500)});
-$('bResume').onclick=()=>cv.requestPointerLock();
+$('bResume').onclick=()=>lockPointer();
 $('bLeave').onclick=()=>{location.href=location.href.split(/[?#]/)[0]};
 if(room){$('bJoin').hidden=false;$('bHost').hidden=true}
 if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches)err('키보드와 마우스가 필요한 PC용 게임입니다');
@@ -78,10 +79,9 @@ addEventListener('keydown',e=>{
     case 'Digit1':case 'Digit2':swapGun(+e.code[5]-1);break;
     case 'KeyX':swapGun(1-gun);break;
     case 'KeyO':if(phase==='prep'&&!me.dead)pickOp(side(),(cfg.ops[side()]+1)%OPS[side()].length);break;   // switch operator while still in prep
-    case 'Tab':drawBoard();$('board').hidden=false;break;
   }
 });
-addEventListener('keyup',e=>{keys[e.code]=0;if(e.code==='Tab')$('board').hidden=true});
+addEventListener('keyup',e=>{keys[e.code]=0});
 addEventListener('mousemove',e=>{
   if(!locked())return;
   const s=(ads?.0013:.0022)*cfg.sens;me.a+=e.movementX*s;me.pitch=clamp(me.pitch-e.movementY*s,-.7,.7);
@@ -95,13 +95,13 @@ addEventListener('wheel',e=>{if(locked())swapGun(1-gun)});
 addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('pointerlockchange',()=>{
   if(locked())return showMenu(0);
-  for(const k in keys)keys[k]=0;trig=ads=0;$('board').hidden=true;
+  for(const k in keys)keys[k]=0;trig=ads=0;
   if(mode!=='menu'&&phase!=='lobby'&&$('menu').hidden)showMenu('pause');   // Esc mid-round opens the pause panel
 });
 cv.onclick=()=>{
   if(mode==='solo'&&phase==='end'&&Date.now()>phaseEnd)startSolo();
   if(me.dead)specI++;
-  if(mode!=='menu'&&phase!=='lobby')cv.requestPointerLock();
+  if(mode!=='menu'&&phase!=='lobby')lockPointer();
 };
 
 // ---------- HUD ----------
@@ -141,7 +141,9 @@ function hud(){
     if(hitC>=0&&t!==RTHIN)m+=(m?' · ':'')+'[V] 타격';
   }
   put('prompt',m);setW('progFill',prog*100);if($('prog').hidden!==!prog)$('prog').hidden=!prog;
-  const sec=now/1000|0;
+  const sec=now/1000|0,showB=!!keys.Tab||phase==='end'&&mode==='mp';       // scoreboard: Tab, and between rounds
+  if(showB&&(hud.bs!==sec||$('board').hidden)){hud.bs=sec;drawBoard()}
+  if($('board').hidden===showB)$('board').hidden=!showB;
   if(hud.fv!==feedV||hud.sec!==sec){                           // kill feed: last few lines, each for 10 s
     hud.fv=feedV;hud.sec=sec;
     const f=$('feed');f.textContent='';

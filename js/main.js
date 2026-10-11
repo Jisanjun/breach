@@ -93,6 +93,7 @@ function selfTest(){
 }
 
 loadMap();newRound(0,0);
+$('ver').textContent='v'+V;
 if(location.hash==='#test')selfTest();
 let last=performance.now();
 requestAnimationFrame(function frame(now){
