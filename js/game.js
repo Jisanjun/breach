@@ -209,7 +209,7 @@ function doPing(){
 // landing one storey up (link). An open hatch adds a one-way drop.
 function adj(c){
   const d=ramp[c];
-  if(d)return rampB[c]?[c-d,link[c]]:[c+d,c-d,c-MW,c+MW];
+  if(d)return rampB[c]?[c-d,link[c]]:d===1||d===-1?[c+d,c-d,c-MW,c+MW]:[c+d,c-d,c-1,c+1];
   const n=[c-1,c+1,c-MW,c+MW].filter(k=>!rampB[k]);
   if(link[c]>=0)n.push(link[c]);
   return n;

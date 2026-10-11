@@ -100,10 +100,16 @@ function buildGeo(){
     if(g)quad(orient[c]?[x,t,z+.5,x+1,t,z+.5,x+1,f,z+.5,x,f,z+.5]:[x+.5,t,z,x+.5,t,z+1,x+.5,f,z+1,x+.5,f,z],UV,g,.96,c,g===SOFT?1:0);   // thin wall panel
     const d=ramp[c];
     if(d){                                                      // stairs: sloped top, two flanks, and a riser under the top step
-      const lo=f+rampB[c],hi=lo+.5,hw=d>0?lo:hi,he=d>0?hi:lo;
-      quad([x,hw,z,x+1,he,z,x+1,he,z+1,x,hw,z+1],UV,L_STAIR,1,-1,0);
-      for(const zz of [z,z+1])quad([x,hw,zz,x+1,he,zz,x+1,f,zz,x,f,zz],UV,L_CONC,.8,-1,0);
-      if(rampB[c]){const xx=d>0?x+1:x;quad([xx,hi,z,xx,hi,z+1,xx,f,z+1,xx,f,z],UV,L_CONC,.9,-1,0)}
+      const lo=f+rampB[c],hi=lo+.5,hw=d>0?lo:hi,he=d>0?hi:lo;   // heights at the west/north and east/south edges
+      if(d===1||d===-1){
+        quad([x,hw,z,x+1,he,z,x+1,he,z+1,x,hw,z+1],UV,L_STAIR,1,-1,0);
+        for(const zz of [z,z+1])quad([x,hw,zz,x+1,he,zz,x+1,f,zz,x,f,zz],UV,L_CONC,.8,-1,0);
+        if(rampB[c]){const xx=d>0?x+1:x;quad([xx,hi,z,xx,hi,z+1,xx,f,z+1,xx,f,z],UV,L_CONC,.9,-1,0)}
+      }else{                                                    // a flight running north-south
+        quad([x,hw,z,x,he,z+1,x+1,he,z+1,x+1,hw,z],UV,L_STAIR,1,-1,0);
+        for(const xx of [x,x+1])quad([xx,hw,z,xx,he,z+1,xx,f,z+1,xx,f,z],UV,L_CONC,.8,-1,0);
+        if(rampB[c]){const zz=d>0?z+1:z;quad([x,hi,zz,x+1,hi,zz,x+1,f,zz,x,f,zz],UV,L_CONC,.9,-1,0)}
+      }
     }else if(!nofloor[c]&&hatch[c]!==3){                        // floor
       const hs=hatch[c],L=hs?hs===2?L_HATCHR:L_HATCH:out?f===1?L_GRASS:L_CONC:zone[c]===2+site?L_SITE:softF[c]?L_WOOD:L_CONC;   // timber exactly where bullets go through
       quad([x,f,z,x+1,f,z,x+1,f,z+1,x,f,z+1],UV,L,out?1.1:.92,softF[c]&&!hs?NC+c:-1,1);

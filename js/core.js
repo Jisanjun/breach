@@ -41,13 +41,19 @@ const KEY={'#':HARD,R:STEEL,B:BRICK,X:CRATE,'+':SKYW,'-':SOFT,'|':SOFT,'=':DOOR,
 const PIT=MAPS[MAPID].pit?MAPS[MAPID].pit[1]*MW+MAPS[MAPID].pit[0]:-1;   // a cell of the basement storey under the open sky (House: the driveway)
 const grid=new Uint8Array(NC),orig=new Uint8Array(NC),orient=new Uint8Array(NC),zone=new Uint8Array(NC);
 const holeN=new Uint16Array(NC),hatch=new Uint8Array(NC),hatch0=new Uint8Array(NC);      // hatch: 1 shut, 2 reinforced, 3 open
-const nofloor=new Uint8Array(NC),softF=new Uint8Array(NC),ramp=new Int8Array(NC),rampB=new Float32Array(NC),link=new Int32Array(NC).fill(-1);
+const nofloor=new Uint8Array(NC),softF=new Uint8Array(NC),ramp=new Int16Array(NC),rampB=new Float32Array(NC),link=new Int32Array(NC).fill(-1);
 const holes=new Uint32Array(NC*TEX),fholes=new Uint32Array(NC*TEX);   // per cell: TEX columns, each a bitmask of punched-out rows (walls / the floor under the cell)
 const spawns=[[],[],[],[]],roamSpots=[],sites=[];
 const floorOf=y=>y/FH|0,fold=y=>y%FH;             // which storey a y is on, and y within that storey
 const roomAt=(x,y)=>{const f=floorOf(y),l=fold(y)|0,r=ROOMS.find(r=>r[0]===f&&x>=r[1]&&l>=r[2]&&x<r[3]+1&&l<=r[4]);return FLOORN[f]+' '+(r?r[5]:zone[(y|0)*MW+(x|0)]?'':'마당')};
 // Feet height above the storey's floor at a spot: 0 except on stairs.
-function ground(x,y){const c=(y|0)*MW+(x|0),d=ramp[c];return d?rampB[c]+(d>0?x-(x|0):1-x+(x|0))*.5:0}
+// ramp[c] is the step to the next cell uphill: +-1 (east / west) or +-MW (south / north).
+const RAMP={'>':1,'<':-1,v:MW,'^':-MW};
+function ground(x,y){
+  const c=(y|0)*MW+(x|0),d=ramp[c];if(!d)return 0;
+  const u=d===1||d===-1?x-(x|0):y-(y|0);
+  return rampB[c]+(d>0?u:1-u)*.5;
+}
 let geoDirty=1,maskAll=1;const dirtyM=new Set();  // renderer bookkeeping: rebuild geometry / re-upload every hole mask / these mask slots (floors are NC+cell)
 (function parseMap(){
   MAP.forEach((row,y)=>[...row].forEach((ch,x)=>{
@@ -57,9 +63,9 @@ let geoDirty=1,maskAll=1;const dirtyM=new Set();  // renderer bookkeeping: rebui
     if(ch==='r')roamSpots.push([x+.5,y+.5]);
     if(ch==='h')hatch0[c]=1;
     if(ch===' ')nofloor[c]=1;
-    if(ch==='>'||ch==='<'){                                    // a flight is two cells; the uphill one starts half-way up and leads onto the storey above
-      const d=ramp[c]=ch==='>'?1:-1;
-      if(row[x-d]===ch){rampB[c]=.5;link[c]=c+d+OFFC;link[c+d+OFFC]=c}
+    if(RAMP[ch]){                                              // a flight is two cells; the uphill one starts half-way up and leads onto the storey above
+      const d=ramp[c]=RAMP[ch];
+      if(MAP[(c-d)/MW|0][(c-d)%MW]===ch){rampB[c]=.5;link[c]=c+d+OFFC;link[c+d+OFFC]=c}
     }
     if(k>=0)sites[k]={x:x+.5,y:y+.5,cells:[]};
   }));
