@@ -76,6 +76,7 @@ function onNet(m){
     case 'hi':me.id=m.id;break;
     case 'full':err('방이 가득 찼습니다 (최대 10명)');break;
     case 'lobby':
+      if(!isHost&&MAPS[m.map]&&m.map!==MAPID)return void(location.search='?room='+room+'&map='+m.map);   // an old link without the map: reload onto the host's
       roster=m.roster;score=m.score;
       for(const p of roster){
         if(p.id===me.id){me.team=p.team;me.name=p.name;continue}
@@ -153,7 +154,7 @@ function fillBots(){                             // top each team up to fillTo w
 }
 function syncLobby(){
   if(phase==='lobby'||phase==='end')fillBots();  // never mid-round: that would pull live bots out of the fight
-  toAll({t:'lobby',roster,score});
+  toAll({t:'lobby',roster,score,map:MAPID});
 }
 function syncMsg(){
   const h={},n={},hs={},fh={},so={},any=(a,c)=>{for(let u=0;u<TEX;u++)if(a[c*TEX+u])return 1};
@@ -196,7 +197,7 @@ function host(){
   peer.on('connection',onConn);
   peer.on('open',()=>{
     isHost=1;mode='mp';me.id=0;me.name=myName();
-    $('link').value=location.href.split(/[?#]/)[0]+'?room='+code;
+    $('link').value=location.href.split(/[?#]/)[0]+'?room='+code+'&map='+MAPID;
     roster=[{id:0,name:me.name,team:0}];err('');syncLobby();showMenu('lobby');
   });
 }
@@ -222,6 +223,7 @@ function hostTick(){
   const now=Date.now(),def=1-atkTeam,alive=t=>roster.filter(p=>p.team===t&&!(p.id===me.id?me:others[p.id]).dead).length;
   for(const id in seen)if(now-seen[id]>15e3)drop(+id);          // ghost players (tab closed without a clean close)
   if(phase==='prep'&&now>phaseEnd)toAll({t:'phase'});
+  else if(phase==='prep')botPrep();
   else if(phase==='act'){
     if(roundSize[def]&&!alive(def))endMP(atkTeam,'방어팀 전멸');
     else if(defuser){if(now>phaseEnd)endMP(atkTeam,'디퓨저 작동 완료')}     // once planted, only a disable or the timer ends it

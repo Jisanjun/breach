@@ -17,7 +17,8 @@ try{
 cfg.sens=clamp(cfg.sens,.2,3);cfg.vol=clamp(cfg.vol,0,1);cfg.fov=clamp(cfg.fov,.6,1.1);
 const saveCfg=()=>{try{localStorage.setItem('breach',JSON.stringify(cfg))}catch(e){}};
 
-// ---------- map: Siege's House, redrawn from Ubisoft's published blueprints (basement, ground floor with the yard, upper floor) ----------
+// ---------- map ----------
+// Maps are redrawn from Ubisoft's published per-floor blueprints (basement, ground floor with the yard, upper floor); the data is in js/maps.js.
 // One cell is 25 px of the 1600x900 blueprint; rooms, walls, stairs, hatches and the timber ("line of sight") floors sit
 // where the blueprint has them. The yard around the house is made up.
 // Cube cells: # concrete, B brick, R steel, X crate, + invisible edge of the sky.
@@ -32,125 +33,12 @@ const saveCfg=()=>{try{localStorage.setItem('breach',JSON.stringify(cfg))}catch(
 // The renderer and the ray tests stack the storeys: height = storey + h, and rays continue through open floors.
 const HARD=1,STEEL=2,BRICK=3,CRATE=4,SKYW=5,SOFT=6,DOOR=7,RTHIN=8,WIN=9,HWALL=19,SHIELD=20;   // >=SOFT is thin; SOFT/DOOR/WIN are destructible; SHIELD is set down by players
 const WMID=0xFFFC0;                              // window: only rows 6..19 (the boards) open up; lintel and sill stay
-const FLOORS=[[
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '########......#######################',
-  '########......#######################',
-  '########HHHH=H###.......|......######',
-  '########........|...a...|......>>####',
-  '########...r....|.......|......>>####',
-  '########........|.......|......######',
-  '########...HHHHH#-#...HH#############',
-  '########.......>>.I........##########',
-  '########HH=H#-=HHH#........##########',
-  '######......|.....|........##########',
-  '######......|..r..|........##########',
-  '######.>>...I.....I........##########',
-  '########HH=H#.....#=HHHHHHH##########',
-  '########.............################',
-  '########.............################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################',
-  '#####################################'
-],[
-  '#####################################',
-  '#...................................#',
-  '#.............1.1.1.1.1.............#',
-  '#.......X...........................#',
-  '#...................................#',
-  '#...................................#',
-  '#.......BBB~BBB.....................#',
-  '#.......B.....B.....................#',
-  '#.......B.....B.....................#',
-  '#.......B.....BBB~BBBBB=BBBB   .....#',
-  '#.......B..r..I..>>..I.....B     ...#',
-  '#.......B.....:......I.....!     ...#',
-  '#..X....Bh....I......|.....B   .....#',
-  '#.......B.....#HHH#=H#-=--HB........#',
-  '#.......B.....I  ,:..|.....B........#',
-  '#....BBBBHH=#H#HHH#..|..r..!......4.#',
-  '#....B,<<,..Ih.......:.....B...X....#',
-  '#....!,,,,..I........I.....!......4.#',
-  '#....B,  ,..:....r...|...h.B........#',
-  '#....BBBB#..I........|.....B......4.#',
-  '#.......BH=H#H#---HHH#H=H#BB........#',
-  '#.3.....B,,,,,|,,,,,,:,,,B........4.#',
-  '#.......B,,,,,I,,,,,,I,,,!..........#',
-  '#.3.....!,,,,,I,,b,,,I,,,B........4.#',
-  '#.......B,,,,,I,,,,,,I,,,B..........#',
-  '#.3.....B,,,,,:,,,,,,I,,,B..........#',
-  '#.......B,,,,,I,,,,,,I<<,B....X.....#',
-  '#.3.....BB=BBBBB~B=BBBBBBB..........#',
-  '#...................................#',
-  '#.3...X.............................#',
-  '#.....................X.............#',
-  '#.........2.2.2.2.2.................#',
-  '#...................................#',
-  '#####################################'
-],[
-  '+++++++++++++++++++++++++++++++++++++',
-  '+                                   +',
-  '+                                   +',
-  '+                                   +',
-  '+                                   +',
-  '+                                   +',
-  '+       BB~BBBBBB                   +',
-  '+       B.......:,,,,,,,            +',
-  '+       B.......B,,,,,,,            +',
-  '+       B.......B----#=BBBB         +',
-  '+       B....#--#  ,,I..,,B         +',
-  '+       B....:..I,,,,|..,,!         +',
-  '+       !....I..I,,,,|....B         +',
-  '+       B....#--#HHH,:....B         +',
-  '+       B....I.......#HH=H#-B       +',
-  '+    BBBB-HH=#....r..:......!       +',
-  '+    B,  ,......h....I...h..B       +',
-  '+    !,,,,#--H=#HH#HH#..d...B       +',
-  '+    B,,,,I....|..:.........!       +',
-  '+    BBBBH#....|..I.........B       +',
-  '+       B...c..#--#H=HBB--~BB       +',
-  '+       !......|......B,,           +',
-  '+       B=HHH--#......B,,           +',
-  '+       B......I..r...!,,           +',
-  '+       !......I......B,,           +',
-  '+       B......:......BB            +',
-  '+       B......I......  B           +',
-  '+       BBB~BBBBBB~BBBBBB           +',
-  '+                                   +',
-  '+                                   +',
-  '+                                   +',
-  '+                                   +',
-  '+                                   +',
-  '+++++++++++++++++++++++++++++++++++++'
-]];
+const MAPID=(m=>MAPS[m]?m:'house')(new URLSearchParams(location.search).get('map')),FLOORS=MAPS[MAPID].floors,ROOMS=MAPS[MAPID].rooms;   // js/maps.js
 const MAP=[].concat(...FLOORS),NL=FLOORS.length,FH=FLOORS[0].length;
 const MW=MAP[0].length,MH=MAP.length,NC=MW*MH,OFFC=FH*MW;        // OFFC: the same spot one storey up
-const ROOMS=[                                    // callouts: storey, x0, y0, x1, y1 (cells, inclusive), name
-  [0,8,7,13,8,'창고'],[0,11,14,17,14,'지하 계단'],[0,8,10,15,14,'세탁실'],[0,25,9,32,12,'차고 진입로'],[0,17,9,23,12,'차고'],[0,19,13,26,18,'차고 안쪽'],
-  [0,6,16,11,18,'서쪽 계단'],[0,13,16,17,19,'체육관'],[0,8,20,20,21,'체육관'],
-  [1,9,7,13,14,'식당'],[1,15,10,20,12,'중앙 계단'],[1,22,10,26,12,'주방'],[1,22,14,26,19,'거실'],[1,15,14,17,14,'지하 계단'],[1,13,14,20,19,'로비'],
-  [1,6,16,9,18,'서쪽 계단'],[1,10,16,11,19,'복도'],[1,9,21,13,26,'음악실'],[1,15,21,20,26,'TV방'],[1,22,21,24,26,'남쪽 계단'],
-  [2,9,7,15,9,'아이 방'],[2,9,10,12,14,'아이 방'],[2,14,11,15,12,'옷장'],[2,17,7,23,8,'발코니'],[2,17,10,20,13,'중앙 계단'],[2,22,10,25,13,'욕실'],
-  [2,6,16,9,18,'서쪽 계단'],[2,10,14,20,16,'복도'],[2,22,15,27,19,'안방'],[2,19,18,21,19,'안방'],[2,16,18,17,19,'독서실'],[2,11,18,14,19,'자동차 방'],[2,9,20,14,21,'자동차 방'],
-  [2,9,23,14,26,'분홍 방'],[2,16,21,21,26,'놀이방'],[2,23,21,24,24,'지붕']];
 const FLOORN=['지하','1층','2층'];
 const KEY={'#':HARD,R:STEEL,B:BRICK,X:CRATE,'+':SKYW,'-':SOFT,'|':SOFT,'=':DOOR,':':DOOR,'~':WIN,'!':WIN,H:HWALL,I:HWALL};
-const PIT=10*MW+28;                              // a cell of the driveway, the only part of the basement storey under the open sky
+const PIT=MAPS[MAPID].pit?MAPS[MAPID].pit[1]*MW+MAPS[MAPID].pit[0]:-1;   // a cell of the basement storey under the open sky (House: the driveway)
 const grid=new Uint8Array(NC),orig=new Uint8Array(NC),orient=new Uint8Array(NC),zone=new Uint8Array(NC);
 const holeN=new Uint16Array(NC),hatch=new Uint8Array(NC),hatch0=new Uint8Array(NC);      // hatch: 1 shut, 2 reinforced, 3 open
 const nofloor=new Uint8Array(NC),softF=new Uint8Array(NC),ramp=new Int8Array(NC),rampB=new Float32Array(NC),link=new Int32Array(NC).fill(-1);
@@ -182,7 +70,8 @@ let geoDirty=1,maskAll=1;const dirtyM=new Set();  // renderer bookkeeping: rebui
     const q=[start];zone[start]=v;
     for(let i=0;i<q.length;i++){const c=q[i];if(out)out.push(c);for(const n of [c-1,c+1,c-MW,c+MW])if(!orig[n]&&zone[n]===1){zone[n]=v;q.push(n)}}
   };
-  fill(PIT,0);fill(OFFC+MW+1,0);fill(2*OFFC+MW+1,0);           // the driveway, the yard, the air around the upper floor
+  if(PIT>=0)fill(PIT,0);
+  fill(OFFC+MW+1,0);fill(2*OFFC+MW+1,0);           // the driveway, the yard, the air around the upper floor
   sites.forEach((s,k)=>fill((s.y|0)*MW+(s.x|0),2+k,s.cells));
 })();
 function loadMap(){grid.set(orig);holes.fill(0);holeN.fill(0);fholes.fill(0);hatch.set(hatch0);geoDirty=maskAll=1;dirtyM.clear()}

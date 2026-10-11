@@ -24,8 +24,8 @@ const OPS=[[
 cfg.ops=cfg.ops.map((v,i)=>clamp(v,0,OPS[i].length-1));
 
 // x, y (storey folded in), h = feet above that storey's floor, z = eye height above the feet, a = yaw, pa = pitch angle (pitch = its tangent)
-const me={id:-1,name:'',team:0,x:16.5,y:FH+2.5,h:0,a:1.57,pa:0,pitch:0,z:.5,lean:0,hp:100,maxHp:100,dead:0,gad:0,nn:0,drone:0,sx:0,sy:0,guns:['ar','pistol']};   // drone: 1 driving, 2 destroyed
-const cam={x:16.5,y:FH+2.5,a:1.57,z:.5,pa:0,pitch:0};   // the eye that is rendered and shot from: mine, or the teammate I'm spectating
+const me={id:-1,name:'',team:0,x:spawns[0][2][0],y:spawns[0][2][1],h:0,a:1.57,pa:0,pitch:0,z:.5,lean:0,hp:100,maxHp:100,dead:0,gad:0,nn:0,drone:0,sx:0,sy:0,guns:['ar','pistol']};   // drone: 1 driving, 2 destroyed
+const cam={x:me.x,y:me.y,a:1.57,z:.5,pa:0,pitch:0};   // the eye that is rendered and shot from: mine, or the teammate I'm spectating
 const bomb={x:0,y:0};                            // marks the objective room
 let mode='menu',phase='lobby',phaseEnd=0,actDur=180,atkTeam=0,score=[0,0],msg='',site=0,spawnGrp=0,offline=0,fillTo=0;
 let others={},gun=0,ammo=[0,0],res=[0,0],fov=cfg.fov,charge=-1,defuser=null,holdT=0,beepT=0,specI=0,sensing=0,flashT=0,fade=0;
@@ -236,6 +236,12 @@ function smoked(x0,y0,x1,y1){                    // does a smoke cloud sit on th
 function noiseAt(x,y,r,team){                    // host: bots of the other side within earshot turn hostile and remember where
   for(const b of hostBots())if(b.team!==team&&Math.hypot(b.x-x,fold(b.y)-fold(y))<r){b.alert=1;b.heard=[x,y];b.heardT=Date.now()}
 }
+let prepN=0;
+function botPrep(){                              // host, each net tick of the prep phase: defender bots reinforce up to three walls of the objective
+  if(prepN>2||Math.random()>.04||!hostBots().some(b=>b.team!==atkTeam))return;
+  const cand=[];for(const c of sites[site].cells)for(const n of [c-1,c+1,c-MW,c+MW])if(grid[n]===SOFT)cand.push(n);
+  if(cand.length){prepN++;reinforce(cand[Math.random()*cand.length|0],1)}
+}
 function initBot(b,slot){
   Object.assign(b,{hp:100,z:.5,h:0,alert:0,saw:0,react:0,blind:0,df:0,plantT:0,brk:0,last:null,lastT:0,heard:null,heardT:0,
     post:[b.x,b.y],roam:slot>2,wait:1+Math.random()*5,mv:0,walk:0,flash:0});
@@ -312,7 +318,7 @@ function resetMe(){
 function newRound(s,g){
   loadMap();site=s;spawnGrp=g;charge=-1;defuser=null;msg='';
   parts.length=nades.length=smokes.length=pings.length=0;
-  for(const c in traps)delete traps[c];for(const c in wires)delete wires[c];for(const c in flows)delete flows[c];
+  for(const c in traps)delete traps[c];for(const c in wires)delete wires[c];for(const c in flows)delete flows[c];prepN=0;
   bomb.x=sites[s].x;bomb.y=sites[s].y;
 }
 const atkSpawn=i=>spawns[spawnGrp][i%5];

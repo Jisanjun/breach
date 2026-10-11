@@ -89,6 +89,7 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
       <button id="bSolo" class="alt">혼자 연습 (봇과 5대5)</button>
       <button id="bAlone" class="alt">혼자 1대5 (적팀만 봇)</button>
     </div>
+    <div class="row" id="mapRow"><label>맵 <select id="mapSel"></select></label></div>
   </div>
   <div id="lobby" hidden>
     <div id="res"></div>
@@ -141,7 +142,7 @@ Space: 열린 창문·설치형 방패 넘기 · 레펠(공격, 집 바깥벽 �
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
 const V=location.hostname==='localhost'?Date.now():'6.3';
-for(const f of ['core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
+for(const f of ['maps','core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>
 

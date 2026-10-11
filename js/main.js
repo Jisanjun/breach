@@ -85,8 +85,8 @@ function selfTest(){
   const ok=(c,m)=>console.assert(c,m),G=FH,U=2*FH;               // G, U: row offsets of the ground and upper floors
   loadMap();site=1;
   ok(MAP.every(r=>r.length===MW)&&MH===NL*FH&&spawns.every(g=>g.length===5)&&sites.length===4&&sites.every(s=>s.cells.length>=15),'map shape');
-  ok(zone[(G+1)*MW+1]===0&&zone[PIT]===0&&zone[(G+8)*MW+10]===1&&inSite(17.5,G+23.5)&&!inSite(17.5,U+23.5),'zones');
-  ok(roomAt(17.5,G+23.5)==='1층 TV방'&&roomAt(20.5,10.5)==='지하 차고'&&roomAt(2,G+2)==='1층 마당','callouts');
+  ok(zone[(G+1)*MW+1]===0&&sites.every((s,k)=>zone[(s.y|0)*MW+(s.x|0)]===2+k&&roomAt(s.x,s.y).length>4),'zones and site callouts');
+  for(const g of spawns)for(const s of sites)ok(flowTo(s.x,s.y)[(g[0][1]|0)*MW+(g[0][0]|0)]>0,'every objective can be walked to from every spawn');
   for(let c=0;c<NC;c++){
     if(orig[c]>=SOFT){                           // thin walls must not meet a perpendicular thin wall (it would leave a gap)
       const [a,b]=orient[c]?[c-1,c+1]:[c-MW,c+MW];
@@ -95,6 +95,9 @@ function selfTest(){
     if(rampB[c])ok(link[c]>=0&&!orig[link[c]]&&!nofloor[link[c]]&&nofloor[c+OFFC]&&ramp[c-ramp[c]]===ramp[c],'stairs lead to a landing at '+c);
     if(hatch0[c])ok(c>=OFFC&&!orig[c]&&!orig[c-OFFC]&&!nofloor[c],'hatch has free floor above and below at '+c);
   }
+  if(MAPID!=='house'){for(const k in flows)delete flows[k];return console.log('selfTest done (map rules only: '+MAPID+')')}   // the rest walks through House
+  ok(zone[PIT]===0&&zone[(G+8)*MW+10]===1&&inSite(17.5,G+23.5)&&!inSite(17.5,U+23.5),'zones');
+  ok(roomAt(17.5,G+23.5)==='1층 TV방'&&roomAt(20.5,10.5)==='지하 차고'&&roomAt(2,G+2)==='1층 마당','callouts');
   // walls
   const c=(G+20)*MW+15,sight=()=>trace(15.3,G+18.5,.5,0,1,0,4.5,-1);    // soft wall between the lobby and the TV room
   ok(grid[c]===SOFT&&orient[c]===1,'soft wall where expected');
