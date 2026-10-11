@@ -23,7 +23,7 @@ function drawOps(){
     const box=$('ops'+sd);box.textContent='';
     list.forEach((o,i)=>{
       const b=document.createElement('button'),s=document.createElement('small');
-      b.className='op'+(cfg.ops[sd]===i?' on':'');b.textContent=o.n;s.textContent=o.d;b.append(s);
+      b.className='op'+(cfg.ops[sd]===i?' on':'');b.textContent=o.n;s.textContent=o.d+' · 체력 '+(o.hp||HP[o.cls])+' · 속도 '+'●'.repeat(4-o.cls)+'○'.repeat(o.cls-1);b.append(s);
       b.onclick=()=>pickOp(sd,i);box.append(b);
     });
   });

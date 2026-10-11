@@ -136,7 +136,7 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'5.1';
+const V=location.hostname==='localhost'?Date.now():'5.2';
 for(const f of ['core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>

@@ -32,7 +32,7 @@ function update(dt){
   const act=canAct(),drone=me.drone===1,f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0),ca=Math.cos(me.a),sa=Math.sin(me.a);
   moving=(act||drone)&&(f||s)?1:0;
   if(moving){
-    const v=drone?3.6:ads?1.6:keys.KeyC?1.4:keys.ShiftLeft?4.2:2.8,sp=v*dt/Math.hypot(f,s);
+    const v=drone?3.6:(ads?1.6:keys.KeyC?1.4:keys.ShiftLeft?4.2:2.8)*SPD[op().cls],sp=v*dt/Math.hypot(f,s);
     tryMove(me.x+(ca*f-sa*s)*sp,me.y,drone);tryMove(me.x,me.y+(sa*f+ca*s)*sp,drone);
     bob+=dt*v*2.4;
     if(!drone&&v>2&&(stepT-=dt*v)<0){stepT=1.8;noise(.06,.12,220)}        // my own footsteps, quiet

@@ -1,21 +1,25 @@
 'use strict';
 // Player state, weapons, operators, host-driven bots and round flow.
+// Damage, fire rate and magazine follow Siege's own figures for each class: ar ~ R4-C / AK-12, smg ~ MP5 / FMG-9,
+// dmr ~ 417, pistol ~ P226. The shotgun stays below Siege's per-pellet damage: there is no range falloff here to keep it short-ranged.
 const GUNS={
-  ar:{n:'돌격소총',rpm:700,dmg:34,pel:1,spr:.028,hole:0,mag:30,res:120,kick:.012,auto:1,rel:1.9},
-  smg:{n:'기관단총',rpm:950,dmg:23,pel:1,spr:.042,hole:0,mag:28,res:140,kick:.009,auto:1,rel:1.7},
+  ar:{n:'돌격소총',rpm:800,dmg:42,pel:1,spr:.028,hole:0,mag:30,res:120,kick:.012,auto:1,rel:1.9},
+  smg:{n:'기관단총',rpm:850,dmg:30,pel:1,spr:.042,hole:0,mag:30,res:150,kick:.009,auto:1,rel:1.7},
   sg:{n:'산탄총',rpm:80,dmg:15,pel:8,spr:.14,hole:2,mag:6,res:24,kick:.05,auto:0,rel:2.4},
-  dmr:{n:'지정사수소총',rpm:320,dmg:58,pel:1,spr:.012,hole:1,mag:12,res:48,kick:.03,auto:0,rel:2.1,zoom:.36},
-  pistol:{n:'권총',rpm:420,dmg:30,pel:1,spr:.03,hole:0,mag:12,res:48,kick:.018,auto:0,rel:1.4}};
+  dmr:{n:'지정사수소총',rpm:450,dmg:66,pel:1,spr:.012,hole:1,mag:20,res:60,kick:.03,auto:0,rel:2.1,zoom:.36},
+  pistol:{n:'권총',rpm:450,dmg:48,pel:1,spr:.03,hole:0,mag:15,res:45,kick:.018,auto:0,rel:1.4}};
 // Operators: [attackers, defenders]. g = gadget name (G key), nade = throwable (T key), d = menu description.
+// cls is Siege's weight class: 1 light (fast, least health), 2 medium, 3 heavy (slow, most health).
+const HP=[0,100,110,125],SPD=[0,1.08,1,.92];
 const OPS=[[
-  {n:'돌파병',guns:['ar','pistol'],g:'돌파 폭약',gad:3,nade:'frag',nn:1,d:'돌격소총 · 돌파 폭약 ×3 · 수류탄'},
-  {n:'해머',guns:['sg','smg'],g:'해머',gad:8,hammer:1,nade:'flash',nn:2,d:'산탄총 · 벽을 한 방에 부수는 해머 · 섬광탄 ×2'},
-  {n:'용접병',guns:['ar','pistol'],g:'용접 폭약',gad:2,thermal:1,nade:'smoke',nn:2,d:'보강벽·보강 해치까지 뚫는 폭약 ×2 · 연막탄 ×2'},
-  {n:'지정사수',guns:['dmr','pistol'],g:'돌파 폭약',gad:1,nade:'flash',nn:2,d:'한 발이 센 반자동 소총 · 섬광탄 ×2'}],[
-  {n:'보강병',guns:['smg','sg'],g:'벽 보강',gad:4,nade:'impact',nn:2,d:'벽·해치 보강 ×4 · 충격 수류탄 ×2'},
-  {n:'방탄병',guns:['ar','pistol'],g:'벽 보강',gad:2,hp:150,nade:'impact',nn:1,d:'체력 150 · 벽·해치 보강 ×2'},
-  {n:'감지병',guns:['smg','pistol'],g:'심박 감지',gad:0,sensor:1,nade:'impact',nn:2,d:'G 누르는 동안 벽 너머 적 감지'},
-  {n:'함정병',guns:['sg','pistol'],g:'문 함정',gad:3,trap:1,nade:'impact',nn:1,d:'문에 폭발 함정 ×3 (적이 지나가면 터짐)'}]];
+  {n:'돌파병',cls:1,guns:['ar','pistol'],g:'돌파 폭약',gad:3,nade:'frag',nn:1,d:'돌격소총 · 돌파 폭약 ×3 · 수류탄'},
+  {n:'해머',cls:2,guns:['sg','smg'],g:'해머',gad:8,hammer:1,nade:'flash',nn:2,d:'산탄총 · 벽을 한 방에 부수는 해머 · 섬광탄 ×2'},
+  {n:'용접병',cls:2,guns:['ar','pistol'],g:'용접 폭약',gad:2,thermal:1,nade:'smoke',nn:2,d:'보강벽·보강 해치까지 뚫는 폭약 ×2 · 연막탄 ×2'},
+  {n:'지정사수',cls:2,guns:['dmr','pistol'],g:'돌파 폭약',gad:1,nade:'flash',nn:2,d:'한 발이 센 반자동 소총 · 섬광탄 ×2'}],[
+  {n:'보강병',cls:2,guns:['smg','sg'],g:'벽 보강',gad:4,nade:'impact',nn:2,d:'벽·해치 보강 ×4 · 충격 수류탄 ×2'},
+  {n:'방탄병',cls:3,guns:['ar','pistol'],g:'벽 보강',gad:2,hp:150,nade:'impact',nn:1,d:'방탄판 · 벽·해치 보강 ×2'},
+  {n:'감지병',cls:1,guns:['smg','pistol'],g:'심박 감지',gad:0,sensor:1,nade:'impact',nn:2,d:'G 누르는 동안 벽 너머 적 감지'},
+  {n:'함정병',cls:2,guns:['sg','pistol'],g:'문 함정',gad:3,trap:1,nade:'impact',nn:1,d:'문에 폭발 함정 ×3 (적이 지나가면 터짐)'}]];
 cfg.ops=cfg.ops.map((v,i)=>clamp(v,0,OPS[i].length-1));
 
 // x, y (storey folded in), h = feet above that storey's floor, z = eye height above the feet, a = yaw, pa = pitch angle (pitch = its tangent)
@@ -245,7 +249,7 @@ function botMove(b,dt){
 function loadout(){
   const o=me.op=OPS[side()][cfg.ops[side()]];
   me.guns=o.guns;gun=0;ammo=o.guns.map(k=>GUNS[k].mag);res=o.guns.map(k=>GUNS[k].res);
-  me.hp=me.maxHp=o.hp||100;me.gad=o.gad;me.nn=o.nn||0;reloadT=0;
+  me.hp=me.maxHp=o.hp||HP[o.cls];me.gad=o.gad;me.nn=o.nn||0;reloadT=0;
 }
 function resetMe(){
   me.dead=0;me.pa=me.pitch=me.lean=me.h=0;me.z=.5;me.a=Math.atan2(fold(sites[site].y)-fold(me.y),sites[site].x-me.x);
