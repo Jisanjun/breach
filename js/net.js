@@ -107,6 +107,7 @@ function onNet(m){
       showMenu(0);banner('라운드 '+m.n,(isAtk()?'공격':'방어')+' — 목표: '+roomAt(sites[site].x,sites[site].y));sfx.horn();break;
     case 'phase':
       phase='act';phaseEnd=Date.now()+actDur*1e3;
+      me.dr=me.drone===1&&!me.dead?{x:me.x,y:me.y,h:me.h}:null;      // a drone that survived prep stays parked where it stands
       if(me.drone){me.drone=0;me.x=me.sx;me.y=me.sy;me.h=0;me.z=.5;me.pa=0;me.a=Math.atan2(fold(sites[site].y)-fold(me.y),sites[site].x-me.x)}   // back from the drone to the body
       banner('교전 개시',isAtk()?'디퓨저 설치 또는 전원 제압':'목표를 지켜라');sfx.horn();break;
     case 'planted':

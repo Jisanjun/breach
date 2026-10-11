@@ -36,7 +36,13 @@ let fireT=0,reloadT=0,meleeT=0,nadeT=0,muzzle=0,hitT=0,hitHS=0,hurtT=0,hurtA=0,b
 const feedL=[],stats={},pings=[],traps={},wires={},flows={};   // traps, wires: cell -> team that set it
 me.op=OPS[0][cfg.ops[0]];                        // the operator I'm equipped as; a menu pick only takes effect at the next loadout
 const isAtk=()=>me.team===atkTeam,side=()=>isAtk()?0:1,op=()=>me.op;
-const canAct=()=>!me.dead&&!(me.cv>=0)&&(phase==='act'||phase==='prep'&&!isAtk());   // not while watching a camera
+const canAct=()=>!me.dead&&!(me.cv>=0)&&!me.dv&&(phase==='act'||phase==='prep'&&!isAtk());   // not while watching a camera or driving the drone
+// Attackers: 5 switches between my body and the drone parked at the end of prep.
+// ponytail: in the action phase the drone exists only on its owner's machine — nobody else sees it or can shoot it. Sync it as an entity if that matters.
+function droneView(){
+  if(me.dead||!isAtk()||phase!=='act'||!me.dr||me.rap)return;
+  me.dv=me.dv?0:1;sfx.ui();
+}
 // ---------- cameras ----------
 // Fixed cameras under the ceiling ('k' in the map). Defenders step through them with 5; attackers shoot them out.
 let cams=[];
@@ -343,7 +349,7 @@ function loadout(){
 }
 function resetMe(){
   me.dead=0;me.pa=me.pitch=me.lean=me.h=0;me.z=.5;me.a=Math.atan2(fold(sites[site].y)-fold(me.y),sites[site].x-me.x);
-  me.sx=me.x;me.sy=me.y;me.drone=isAtk()?1:0;me.rap=0;me.cv=-1;    // attackers scout by drone during prep
+  me.sx=me.x;me.sy=me.y;me.drone=isAtk()?1:0;me.rap=0;me.cv=-1;me.dv=0;me.dr=null;    // attackers scout by drone during prep
   holdT=flashT=shots=0;deathMsg='';loadout();
 }
 function newRound(s,g){

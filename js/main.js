@@ -32,6 +32,13 @@ function update(dt){
   const act=canAct(),drone=me.drone===1,f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0),ca=Math.cos(me.a),sa=Math.sin(me.a);
   moving=(act||drone)&&(f||s)?1:0;
   if(me.rap&&!act)me.rap=0;
+  if(me.dv&&!me.dead&&(f||s)){                                            // driving the parked drone: borrow my own movement code, then put my body back
+    const b=[me.x,me.y,me.h],d=me.dr,sp=3.6*dt/Math.hypot(f,s);
+    me.x=d.x;me.y=d.y;me.h=d.h;tryMove(me.x+(ca*f-sa*s)*sp,me.y,1);tryMove(me.x,me.y+(sa*f+ca*s)*sp,1);
+    const c=(me.y|0)*MW+(me.x|0);
+    if(me.y>=FH&&gap(c)){if(ramp[c-OFFC])me.y-=FH;else{me.x=d.x;me.y=d.y}}   // down a staircase, never off an edge
+    d.x=me.x;d.y=me.y;d.h=ground(me.x,me.y);[me.x,me.y,me.h]=b;
+  }
   if(me.rap)rappel(f,s,dt);
   else if(moving){
     const wc=wires[(me.y|0)*MW+(me.x|0)],drag=wc!==undefined&&wc!==me.team?.45:1;        // the other side's barbed wire
@@ -74,6 +81,7 @@ function update(dt){
   const sp=viewTarget();
   if(sp){const [ey,ez]=eyeOf(sp);Object.assign(cam,{x:sp.x,y:ey,z:ez,a:sp.av,pa:0,pitch:0})}
   else if(me.cv>=0&&!me.dead)Object.assign(cam,{x:cams[me.cv].x,y:cams[me.cv].y,z:.88,a:me.a,pa:me.pa,pitch:me.pitch});   // looking through a camera
+  else if(me.dv&&!me.dead)Object.assign(cam,{x:me.dr.x,y:me.dr.y,z:me.dr.h+.1,a:me.a,pa:me.pa,pitch:me.pitch});          // or through my drone
   else{
     const [ey,ez]=eyeOf(me);let lx=me.x-sa*me.lean*.35,ly=ca*me.lean*.35;
     if(grid[((ey+ly)|0)*MW+(lx|0)]&&!me.drone){lx=me.x;ly=0}              // don't lean the eye into a wall

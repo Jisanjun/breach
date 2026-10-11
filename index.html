@@ -122,7 +122,8 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
 V 근접 (문 3타, 창문 2타, 해치 3타) · G 가젯 · T 투척물
 B 열린 문에 바리케이드 · Z/휠클릭 핑 · Tab 점수판
 F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
-5: 방어팀 카메라 보기 (다시 누르면 다음 카메라, 끝나면 복귀) — 공격팀은 천장의 카메라를 쏴서 부술 수 있다
+5: 방어팀은 카메라 보기 (다시 누르면 다음 카메라, 끝나면 복귀) — 공격팀은 천장의 카메라를 쏴서 부술 수 있다
+5: 공격팀은 준비 단계에 살아남은 드론을 교전 중에도 조종 (다시 5 로 몸에 복귀, 그동안 몸은 무방비)
 T 가젯: 수류탄류는 던지고, 철조망·방패·클레이모어는 앞 칸에 설치, C4 는 던진 뒤 T 로 기폭 · 철조망은 V 로 끊는다
 Space: 열린 창문·설치형 방패 넘기 · 레펠(공격, 집 바깥벽 앞에서) — 줄에서는 W/S 오르내리기, A/D 옆으로, Space 로 창문 진입
 
@@ -145,7 +146,7 @@ Space: 열린 창문·설치형 방패 넘기 · 레펠(공격, 집 바깥벽 �
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'6.9';
+const V=location.hostname==='localhost'?Date.now():'7.0';
 for(const f of ['maps','core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>

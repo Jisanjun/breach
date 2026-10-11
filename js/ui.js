@@ -88,7 +88,7 @@ addEventListener('keydown',e=>{
     }
     case 'KeyX':swapGun(1-gun);break;
     case 'Space':vault();break;
-    case 'Digit5':camView();break;
+    case 'Digit5':isAtk()?droneView():camView();break;
     case 'Enter':if(isHost&&phase==='prep')phaseEnd=0;break;       // host skips the rest of prep; hostTick announces the phase change
     case 'KeyO':if(phase==='prep'&&!me.dead)pickOp(side(),(cfg.ops[side()]+1)%OPS[side()].length);break;   // switch operator while still in prep
   }
@@ -116,6 +116,7 @@ cv.onclick=()=>{
 };
 
 // ---------- HUD ----------
+const DIRN=['동','남동','남','남서','서','북서','북','북동'];   // where the eye faces, for callouts (the map's north is up on the blueprints)
 function hud(){
   const on=mode!=='menu'&&phase!=='lobby',h=$('hud');
   if(h.hidden===on)h.hidden=!on;
@@ -123,7 +124,7 @@ function hud(){
   const now=Date.now(),s=Math.max(0,Math.ceil((phaseEnd-now)/1000)),o=op(),g=curGun(),off=me.drone||me.dead;
   put('clock',phase==='end'?'–:––':(s/60|0)+':'+String(s%60).padStart(2,'0'));
   const hot=defuser&&phase==='act'?'hot':'';if($('clock').className!==hot)$('clock').className=hot;
-  put('sub',phase==='end'?'':defuser?'디퓨저 작동 중 — '+(isAtk()?'지켜라':'해제하라'):(phase==='prep'?'준비 단계 · ':'')+(isAtk()?'공격':'방어')+' · '+roomAt(cam.x,cam.y));
+  put('sub',phase==='end'?'':defuser?'디퓨저 작동 중 — '+(isAtk()?'지켜라':'해제하라'):(phase==='prep'?'준비 단계 · ':'')+(isAtk()?'공격':'방어')+' · '+roomAt(cam.x,cam.y)+' · '+DIRN[Math.round(cam.a/(Math.PI/4))&7]);
   const pip=t=>roster.filter(p=>p.team===t).map(p=>(p.id===me.id?me:others[p.id]||{dead:1}).dead?'○':'●').join('');
   put('pip0',pip(0));put('pip1',pip(1));put('sc0',''+score[0]);put('sc1',''+score[1]);
   put('hpNum',me.dead?'':''+Math.max(0,me.hp|0));setW('hpFill',me.dead?0:clamp(me.hp/me.maxHp*100,0,100));
@@ -136,6 +137,7 @@ function hud(){
   if(phase==='end')m='';
   else if(me.dead){const sp=viewTarget();m=(deathMsg?deathMsg+'\n':'')+(sp?'관전: '+sp.name+' (클릭: 다음 팀원)':'다음 라운드 대기')}
   else if(!locked())m='화면을 클릭하면 조작 시작';
+  else if(me.dv)m='드론 조종 중 — WASD · [5] 내 몸으로 복귀';
   else if(me.cv>=0)m='카메라 '+(me.cv+1)+' / '+cams.length+' — 마우스로 둘러보기 · [5] 다음 카메라 (마지막 다음은 복귀)';
   else if(holdT>0){m=isAtk()?'디퓨저 설치 중':'디퓨저 해제 중';prog=holdT/5}
   else if(me.rap){const k=spaceAct().k;m='레펠 — [W/S] 오르내리기 · [A/D] 옆으로'+(k===1?' · [Space] 들어가기':k===2?' · [Space] 줄 풀기':'')}
