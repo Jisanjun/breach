@@ -1,7 +1,7 @@
 // three.js layer (ES module): animated character models and the first-person weapon, drawn into the same WebGL
 // context and depth buffer after the world pass in render.js. If this file or the CDN fails to load, the game still
 // runs: render.js falls back to flat sprites and a 2D-drawn gun.
-// Models: Kenney "Blocky Characters" and "Blaster Kit" (CC0) — see assets/LICENSE-kenney.txt.
+// Characters: Kenney "Blocky Characters" (CC0) — see assets/LICENSE-kenney.txt. The weapons are built here from boxes.
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
@@ -14,11 +14,28 @@ for(const s of [scene,vscene]){
   s.add(new THREE.AmbientLight(0xffffff,1.9),sun);
 }
 const loader=new GLTFLoader(),load=f=>loader.loadAsync('assets/'+f+'.glb');
-const CHARS=[['j','h','r'],['d','g','n']],GUNM={ar:'n',smg:'g',sg:'h',dmr:'e',pistol:'a',shield:'a'};    // character looks per team, gun model per weapon
+const CHARS=[['j','h','r'],['d','g','n']];       // character looks per team
 const chars={},guns={},inst={};
-await Promise.all([
-  ...CHARS.flat().map(async c=>{chars[c]=await load('character-'+c)}),
-  ...Object.entries(GUNM).map(async([k,c])=>{guns[k]=(await load('blaster-'+c)).scene})]);
+await Promise.all(CHARS.flat().map(async c=>{chars[c]=await load('character-'+c)}));
+// Weapons are built from boxes: plain, dark, unmistakably firearms. About one unit long, muzzle along -z, sights up.
+// Each part: material, width, height, length, x, y, z, tilt about x.
+const MAT={k:0x1b1c20,g:0x3b3e45,t:0x8d7a52,w:0x5e4026};
+for(const k in MAT)MAT[k]=new THREE.MeshStandardMaterial({color:MAT[k],roughness:k==='g'?.45:.85,metalness:k==='g'?.6:.15});
+const GUNP={
+  ar:[['k',.07,.13,.42,0,0,0],['g',.03,.03,.4,0,.02,-.45],['k',.075,.09,.3,0,.01,-.34],['g',.04,.045,.07,0,.02,-.66],['t',.055,.12,.3,0,-.015,.36],
+    ['t',.05,.16,.07,0,-.13,.13,.3],['k',.045,.24,.09,0,-.17,-.07,-.2],['k',.03,.05,.2,0,.095,-.02],['k',.02,.07,.02,0,.08,-.5]],
+  smg:[['k',.07,.12,.36,0,0,0],['g',.03,.03,.16,0,.02,-.26],['k',.07,.08,.14,0,0,-.22],['k',.05,.03,.26,0,.03,.3],['k',.05,.1,.03,0,-.02,.43],
+    ['k',.05,.15,.07,0,-.13,.1,.25],['k',.04,.26,.06,0,-.19,-.06],['k',.025,.04,.12,0,.08,-.04]],
+  sg:[['k',.07,.11,.4,0,0,.02],['g',.035,.035,.5,0,.025,-.42],['g',.035,.035,.42,0,-.02,-.38],['w',.075,.07,.22,0,-.02,-.33],['w',.055,.12,.32,0,-.03,.38],
+    ['w',.05,.13,.07,0,-.11,.17,.45],['k',.02,.03,.02,0,.06,-.64]],
+  dmr:[['k',.07,.13,.46,0,0,0],['g',.03,.03,.5,0,.02,-.5],['k',.07,.085,.28,0,.01,-.36],['g',.045,.045,.1,0,.02,-.76],['k',.055,.13,.32,0,-.02,.39],
+    ['k',.05,.16,.07,0,-.13,.13,.3],['k',.05,.18,.1,0,-.14,-.07],['g',.055,.055,.3,0,.12,-.04],['k',.03,.04,.06,0,.085,-.14],['k',.03,.04,.06,0,.085,.06]],
+  pistol:[['g',.05,.07,.3,0,.02,-.05],['k',.048,.05,.26,0,-.03,-.04],['k',.046,.19,.085,0,-.13,.07,.22],['k',.01,.02,.015,0,.063,-.18]]};
+GUNP.shield=GUNP.pistol;
+for(const k in GUNP){
+  const g=guns[k]=new THREE.Group();
+  for(const [m,w,h,l,x,y,z,rx] of GUNP[k]){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,l),MAT[m]);b.position.set(x,y,z);b.rotation.x=rx||0;g.add(b)}
+}
 
 const CLIPS=['idle','walk','sprint','die','holding-both','holding-both-shoot'],SCALE=.62/2.7;   // the model is 2.7 units tall; a standing player .62
 function make(o){
@@ -27,7 +44,7 @@ function make(o){
   for(const n of CLIPS)act[n]=mixer.clipAction(THREE.AnimationClip.findByName(g.animations,n));
   act.die.setLoop(THREE.LoopOnce);act.die.clampWhenFinished=true;
   act['holding-both-shoot'].setLoop(THREE.LoopOnce);
-  const gun=guns.smg.clone(true);gun.rotation.x=-Math.PI/2;gun.position.set(-.2,-.95,.15);     // muzzle (-z) along the raised arm
+  const gun=guns.ar.clone(true);gun.rotation.x=-Math.PI/2;gun.position.set(-.2,-.95,.15);gun.scale.setScalar(1.5);     // muzzle (-z) along the raised arm
   root.getObjectByName('arm-right').add(gun);
   scene.add(root);
   return {root,mixer,act,team:o.team,cur:'',shot:0};

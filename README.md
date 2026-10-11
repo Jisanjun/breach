@@ -107,7 +107,7 @@ python -m http.server 8765
 | 무엇 | 용도 | 라이선스 |
 |---|---|---|
 | [three.js](https://github.com/mrdoob/three.js) r186 (CDN) | glTF 모델 로드·애니메이션·조명 | MIT |
-| [Kenney](https://kenney.nl) Blocky Characters 2.0, Blaster Kit 2.1 (`assets/`) | 캐릭터·총 모델 | CC0 |
+| [Kenney](https://kenney.nl) Blocky Characters 2.0 (`assets/`) | 캐릭터 모델. 총은 `js/models.js` 에서 상자로 직접 만든다 | CC0 |
 | [PeerJS](https://github.com/peers/peerjs) (CDN) | WebRTC 연결 | MIT |
 
 참고한 자료: [awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) 의

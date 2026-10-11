@@ -63,6 +63,7 @@ $('bResume').onclick=lockPointer;
 $('bLeave').onclick=()=>{location.href=location.href.split(/[?#]/)[0]};
 for(const k in MAPS){const o=document.createElement('option');o.value=k;o.textContent=MAPS[k].name;$('mapSel').append(o)}
 $('mapSel').value=MAPID;$('mapSel').onchange=()=>{location.search='?map='+$('mapSel').value};   // the grid size is fixed at load, so a map change reloads the page
+$('lvl').value=cfg.lvl;$('lvl').onchange=()=>{cfg.lvl=+$('lvl').value;saveCfg()};   // read by whoever hosts: bots are the host's
 if(room){$('bJoin').hidden=false;$('bHost').hidden=$('mapRow').hidden=true}
 if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches)err('키보드와 마우스가 필요한 PC용 게임입니다');
 

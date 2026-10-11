@@ -7,12 +7,13 @@ const W=480,H=270,TEX=32;
 const glc=$('gl'),cv=$('cv'),ctx=cv.getContext('2d');           // gl: the 3D view, cv: the 2D overlay on top (weapon, markers) and the input target
 
 // ---------- settings (localStorage is a trust boundary: take only well-typed values) ----------
-const cfg={name:'',sens:1,vol:.7,fov:.85,ops:[0,0]};
+const cfg={name:'',sens:1,vol:.7,fov:.85,ops:[0,0],lvl:0};
 try{
   const s=JSON.parse(localStorage.getItem('breach')||'{}');
   if(typeof s.name==='string')cfg.name=s.name.slice(0,12);
   for(const k of ['sens','vol','fov'])if(typeof s[k]==='number'&&isFinite(s[k]))cfg[k]=s[k];
   if(Array.isArray(s.ops))cfg.ops=[s.ops[0]|0,s.ops[1]|0];
+  if([0,1,2].includes(s.lvl))cfg.lvl=s.lvl;
 }catch(e){}
 cfg.sens=clamp(cfg.sens,.2,3);cfg.vol=clamp(cfg.vol,0,1);cfg.fov=clamp(cfg.fov,.6,1.1);
 const saveCfg=()=>{try{localStorage.setItem('breach',JSON.stringify(cfg))}catch(e){}};

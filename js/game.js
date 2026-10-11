@@ -259,6 +259,7 @@ function botPrep(){                              // host, each net tick of the p
 function initBot(b,slot){
   Object.assign(b,{hp:100,z:.5,h:0,alert:0,saw:0,react:0,blind:0,df:0,plantT:0,brk:0,last:null,lastT:0,heard:null,heardT:0,
     post:[b.x,b.y],roam:slot>2,wait:1+Math.random()*5,mv:0,walk:0,flash:0});
+  if(b.roam&&b.team!==atkTeam&&roamSpots.length)b.post=roamSpots[Math.random()*roamSpots.length|0].slice();   // defending roamers hold a spot somewhere else in the building
   b.a=b.av=Math.atan2(fold(sites[site].y)-fold(b.y),sites[site].x-b.x);
 }
 function botHurt(b,dmg,from,hs){
@@ -270,9 +271,11 @@ function botHurt(b,dmg,from,hs){
 function hitBy(b,t,dmg){                         // a bot's bullet landed on t
   if(t===me)hurt(dmg,b.name,b,0,1);else if(t.bot)botHurt(t,dmg,b);else relay({t:'d',id:b.id,to:t.id,dmg,hs:0},-1);
 }
+const BOT=[[11,.13,1],[17,.1,.8],[25,.07,.6]];   // difficulty (cfg.lvl on the host): damage per round, aim scatter, reaction time factor
 function updBot(b,dt){
   b.blind-=dt;b.flash-=dt;b.mv=0;b.tx=b.x;b.ty=b.y;
   if(b.dead)return;
+  const L=BOT[cfg.lvl];
   const [by,bz]=eyeOf(b,.5);
   let tg=null,td=22;                             // nearest enemy in sight (drones are ignored); sight lines run through open floors too
   if(b.blind<=0)for(const e of enemiesOf(b.team)){
@@ -281,12 +284,12 @@ function updBot(b,dt){
     if(d<td&&(b.alert||d<2.5||Math.cos(fa-b.a)>-.2)&&!smoked(b.x,b.y,e.x,e.y)&&sees(b.x,by,bz,e)){tg=e;td=d}
   }
   if(tg){
-    if(!b.saw)b.react=(b.team===atkTeam?.6:.35)+Math.random()*.4;   // reaction time before the first shot; defenders are holding angles
+    if(!b.saw)b.react=((b.team===atkTeam?.6:.35)+Math.random()*.4)*L[2];   // reaction time before the first shot; defenders are holding angles
     b.alert=1;b.a=Math.atan2(fold(tg.y)-fold(b.y),tg.x-b.x);b.last=[tg.x,tg.y];b.lastT=Date.now();b.df=b.plantT=0;
     if((b.react-=dt)<=0){
       const [gy,gz]=eyeOf(b,.45),d=Math.max(.3,td);
-      b.react=.14+Math.random()*.3;b.flash=.08;sfx.shot('smg',b.x,b.y);relay({t:'f',id:b.id,g:'smg'},-1);
-      bullet(b.x,gy,gz,b.a+rnd(.13),(absZ(tg.y,tg.h+tg.z-.15)-absZ(gy,gz))/d+rnd(.07),11,0,b,11);
+      b.react=(.14+Math.random()*.3)*L[2];b.flash=.08;sfx.shot('smg',b.x,b.y);relay({t:'f',id:b.id,g:'smg'},-1);
+      bullet(b.x,gy,gz,b.a+rnd(L[1]),(absZ(tg.y,tg.h+tg.z-.15)-absZ(gy,gz))/d+rnd(L[1]*.55),L[0],0,b,L[0]);
       noiseAt(b.x,b.y,12,b.team);
     }
   }else if((b.wait-=dt)<0)botMove(b,dt);
