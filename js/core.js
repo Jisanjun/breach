@@ -19,7 +19,7 @@ const saveCfg=()=>{try{localStorage.setItem('breach',JSON.stringify(cfg))}catch(
 
 // ---------- map: Siege's House, redrawn from Ubisoft's published blueprints (basement, ground floor with the yard, upper floor) ----------
 // One cell is 25 px of the 1600x900 blueprint; rooms, walls, stairs, hatches and the timber ("line of sight") floors sit
-// where the blueprint has them. Not from the blueprint: the yard, and the outside stairs to the balcony (there is no rappel).
+// where the blueprint has them. The yard around the house is made up.
 // Cube cells: # concrete, B brick, R steel, X crate, + invisible edge of the sky.
 // Thin walls on the cell's mid-line, written the way they run: - | soft (breakable) wall, H I solid wall, = : barricaded door,
 // ~ ! boarded window.
@@ -76,7 +76,7 @@ const FLOORS=[[
   '#...................................#',
   '#.......BBB~BBB.....................#',
   '#.......B.....B.....................#',
-  '#.......B.....B.........<<..........#',
+  '#.......B.....B.....................#',
   '#.......B.....BBB~BBBBB=BBBB   .....#',
   '#.......B..r..I..>>..I.....B     ...#',
   '#.......B.....:......I.....!     ...#',

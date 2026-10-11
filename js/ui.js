@@ -78,6 +78,7 @@ addEventListener('keydown',e=>{
     case 'KeyZ':doPing();break;
     case 'Digit1':case 'Digit2':swapGun(+e.code[5]-1);break;
     case 'KeyX':swapGun(1-gun);break;
+    case 'Space':vault();break;
     case 'Enter':if(isHost&&phase==='prep')phaseEnd=0;break;       // host skips the rest of prep; hostTick announces the phase change
     case 'KeyO':if(phase==='prep'&&!me.dead)pickOp(side(),(cfg.ops[side()]+1)%OPS[side()].length);break;   // switch operator while still in prep
   }
@@ -126,6 +127,7 @@ function hud(){
   else if(me.dead){const sp=viewTarget();m=(deathMsg?deathMsg+'\n':'')+(sp?'관전: '+sp.name+' (클릭: 다음 팀원)':'다음 라운드 대기')}
   else if(!locked())m='화면을 클릭하면 조작 시작';
   else if(holdT>0){m=isAtk()?'디퓨저 설치 중':'디퓨저 해제 중';prog=holdT/5}
+  else if(me.rap){const k=spaceAct().k;m='레펠 — [W/S] 오르내리기 · [A/D] 옆으로'+(k===1?' · [Space] 들어가기':k===2?' · [Space] 줄 풀기':'')}
   else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경'+(isHost?' · [Enter] 준비 건너뛰기':'');
   else if(charge>=0)m='[G] 폭약 기폭';
   else if(isAtk()&&!defuser&&inSite(me.x,me.y))m='목표 구역 — [F] 꾹 눌러 디퓨저 설치';
@@ -142,6 +144,7 @@ function hud(){
     if(hit&&me.gad&&!o.sensor)m=o.hammer?(t!==RTHIN?'[G] 해머':''):isAtk()?(t!==RTHIN||o.thermal?'[G] '+o.g:''):t===SOFT?'[G] 벽 보강':'';
     if(hit&&t!==RTHIN)m+=(m?' · ':'')+'[V] 타격';
   }
+  if(locked()&&canAct()&&!me.rap&&!me.drone&&!holdT){const k=spaceAct().k;if(k===1||k===3)m+=(m?' · ':'')+(k===1?'[Space] 창문 넘기':'[Space] 레펠')}
   put('prompt',m);setW('progFill',prog*100);if($('prog').hidden!==!prog)$('prog').hidden=!prog;
   const sec=now/1000|0,showB=!!keys.Tab||phase==='end';        // scoreboard: Tab, and between rounds
   if(showB&&(hud.bs!==sec||$('board').hidden)){hud.bs=sec;drawBoard()}

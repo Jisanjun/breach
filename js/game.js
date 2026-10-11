@@ -143,6 +143,39 @@ function tryBarricade(){
   meleeT=.8;barricade(c,1);
 }
 function addPing(x,y,z,who){pings.push({x,y,z,who,t:6});if(pings.length>8)pings.shift();sfx.ping()}
+// ---------- rope and windows (Space) ----------
+// Attackers clip onto a rope at any outside face of the house and ride it up or down; from the rope they climb in through
+// an opened window, a breached wall or onto a balcony. Anyone can climb through an opened window from the floor.
+// ponytail: no rope is drawn and nobody hangs upside down; bots do not use it.
+const winOpen=c=>grid[c]===WIN&&holeN[c]>9000;
+const face=k=>k>=0&&k<NC&&(orig[k]===BRICK||orig[k]>=SOFT),ledge=k=>k>=0&&k<NC&&!orig[k]&&!nofloor[k]&&zone[k]===0;
+function rapFace(c,dx,dy){const w=c+dx+dy*MW;return face(w)||face(w+OFFC)||ledge(w+OFFC)||nofloor[c]&&ledge(w)}   // wall here or above, or a ledge to reach
+function spaceAct(){                             // what Space would do now: k 1 climb to cell t, 2 let go of the rope, 3 clip on
+  const ca=Math.cos(me.a),sa=Math.sin(me.a),ax=Math.abs(ca)>Math.abs(sa);
+  const dx=me.rap?me.rx:ax?Math.sign(ca):0,dy=me.rap?me.ry:ax?0:Math.sign(sa),c=(me.y|0)*MW+(me.x|0),w=c+dx+dy*MW;
+  const t=winOpen(w)?w+dx+dy*MW:me.rap&&nofloor[c]&&!grid[w]?w:-1;
+  if(t>=0&&me.h<.5&&!grid[t]&&!nofloor[t])return {k:1,t};
+  if(me.rap)return {k:!nofloor[c]&&me.h<.3?2:0};
+  return {k:isAtk()&&phase==='act'&&zone[c]===0&&!nofloor[c]&&me.h<.1&&rapFace(c,dx,dy)?3:0,dx,dy};
+}
+function vault(){
+  if(!canAct()||me.drone)return;
+  const s=spaceAct();
+  if(s.k===1){me.x=s.t%MW+.5;me.y=(s.t/MW|0)+.5;me.h=0;me.rap=0;sfx.thud(me.x,me.y)}
+  else if(s.k===2){me.rap=0;me.h=0}
+  else if(s.k===3){me.rap=1;me.rx=s.dx;me.ry=s.dy;me.x=(me.x|0)+.5+s.dx*.28;me.y=(me.y|0)+.5+s.dy*.28;me.vz=0;sfx.place()}
+}
+function rappel(f,s,dt){                          // on the rope: f up/down, s along the wall
+  const c=(me.y|0)*MW+(me.x|0);
+  me.h+=f*1.3*dt;
+  if(me.h>=1){const up=c+OFFC;if(up<NC&&!grid[up]&&nofloor[up]){me.y+=FH;me.h-=1}else me.h=.99}
+  if(me.h<0){if(nofloor[c]){me.y-=FH;me.h+=1}else me.h=0}
+  if(floorOf(me.y)===NL-1)me.h=Math.min(me.h,.45);                  // nothing to stand on up there: stop under the eaves
+  if(s){
+    const x=me.x-me.ry*s*1.2*dt,y=me.y+me.rx*s*1.2*dt;
+    if(free(x,y)&&rapFace((y|0)*MW+(x|0),me.rx,me.ry))me.x=x,me.y=y;
+  }
+}
 function doPing(){
   if(me.dead||mode==='menu'||phase==='lobby')return;
   const ca=Math.cos(me.a),sa=Math.sin(me.a),d=trace(cam.x,cam.y,cam.z,ca,sa,me.pitch,30,-1)-.1;
@@ -254,7 +287,7 @@ function loadout(){
 }
 function resetMe(){
   me.dead=0;me.pa=me.pitch=me.lean=me.h=0;me.z=.5;me.a=Math.atan2(fold(sites[site].y)-fold(me.y),sites[site].x-me.x);
-  me.sx=me.x;me.sy=me.y;me.drone=isAtk()?1:0;    // attackers scout by drone during prep
+  me.sx=me.x;me.sy=me.y;me.drone=isAtk()?1:0;me.rap=0;    // attackers scout by drone during prep
   holdT=flashT=shots=0;deathMsg='';loadout();
 }
 function newRound(s,g){

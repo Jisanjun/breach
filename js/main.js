@@ -31,7 +31,9 @@ function update(dt){
   if(reloadT>0&&(reloadT-=dt)<=0){const n=Math.min(curGun().mag-ammo[gun],res[gun]);ammo[gun]+=n;res[gun]-=n}
   const act=canAct(),drone=me.drone===1,f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0),ca=Math.cos(me.a),sa=Math.sin(me.a);
   moving=(act||drone)&&(f||s)?1:0;
-  if(moving){
+  if(me.rap&&!act)me.rap=0;
+  if(me.rap)rappel(f,s,dt);
+  else if(moving){
     const v=drone?3.6:(ads?1.6:keys.KeyC?1.4:keys.ShiftLeft?4.2:2.8)*SPD[op().cls],sp=v*dt/Math.hypot(f,s);
     tryMove(me.x+(ca*f-sa*s)*sp,me.y,drone);tryMove(me.x,me.y+(sa*f+ca*s)*sp,drone);
     bob+=dt*v*2.4;
@@ -39,9 +41,9 @@ function update(dt){
   }
   if(!me.dead&&!me.drone&&!free(me.x,me.y))                               // a barricade went up on top of me: step out of it
     for(const [i,j] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=(me.x|0)+.5+i,y=(me.y|0)+.5+j;if(free(x,y)){me.x=x;me.y=y;break}}
-  if(!me.dead)settle(dt);
-  me.z+=((me.drone?.1:keys.KeyC?.3:.5)-me.z)*Math.min(1,dt*12);
-  me.lean+=((act?(keys.KeyE?1:0)-(keys.KeyQ?1:0):0)-me.lean)*Math.min(1,dt*10);
+  if(!me.dead&&!me.rap)settle(dt);
+  me.z+=((me.drone?.1:keys.KeyC&&!me.rap?.3:.5)-me.z)*Math.min(1,dt*12);
+  me.lean+=((act&&!me.rap?(keys.KeyE?1:0)-(keys.KeyQ?1:0):0)-me.lean)*Math.min(1,dt*10);
   fov+=((ads&&act?curGun().zoom||.55:cfg.fov)-fov)*Math.min(1,dt*14);
   sensing=act&&op().sensor&&keys.KeyG?1:0;
   // objective: hold F to plant (attackers, inside the site) or disable (defenders, next to the defuser)
@@ -139,6 +141,16 @@ function selfTest(){
   loadMap();hatch[hc]=2;blastHatches(25.5,G+16.5,1.3);ok(hatch[hc]===2,'reinforced hatch survives a blast from below');
   hatch[hc]=1;blastHatches(25.5,G+16.5,1.3);ok(hatch[hc]===3,'plain hatch is blown open from below');
   for(const k in flows)delete flows[k];
+  // rope: up the south wall, then in through the pink room's window once its boards are gone
+  loadMap();phase='act';atkTeam=me.team;
+  Object.assign(me,{x:11.5,y:G+28.5,h:0,vz:0,a:-Math.PI/2,rap:0,dead:0,drone:0});vault();
+  ok(me.rap===1&&Math.abs(me.y-G-28.22)<1e-6,'attackers clip onto a rope at an outside wall');
+  for(let i=0;i<60;i++)rappel(1,0,.02);
+  ok(me.y>U&&Math.abs(me.h-.45)<1e-6,'the rope carries you up to the next storey and stops under the eaves');
+  const rw=(U+27)*MW+11;vault();ok(me.rap===1&&me.y>U+28,'a boarded window keeps you on the rope');
+  destroy(rw);vault();ok(!me.rap&&(me.y|0)===U+26&&me.h===0,'through the opened window into the room');
+  Object.assign(me,{x:11.5,y:G+26.5,a:Math.PI/2,h:0});vault();ok((me.y|0)===G+26,'no rope indoors, and a brick wall is not a window');
+  phase='lobby';
   const sides=()=>(fillBots(),[0,1].map(t=>roster.filter(p=>p.team===t).length).join());
   roster=[{id:0,team:0}];fillTo=6;ok(sides()==='1,5','1 v 5: bots only on the side with no humans');
   fillTo=5;ok(sides()==='5,5','bots fill both sides');fillTo=0;roster=[];
