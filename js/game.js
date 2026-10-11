@@ -8,7 +8,8 @@ const GUNS={
   smg:{n:'기관단총',rpm:850,dmg:30,pel:1,spr:.042,hole:0,mag:30,res:150,kick:.009,auto:1,rel:1.7,fo:[16,25,.6]},
   sg:{n:'산탄총',rpm:80,dmg:34,pel:8,spr:.14,hole:2,mag:7,res:28,kick:.05,auto:0,rel:2.4,fo:[4,11,.3]},
   dmr:{n:'지정사수소총',rpm:450,dmg:66,pel:1,spr:.012,hole:1,mag:20,res:60,kick:.03,auto:0,rel:2.1,zoom:.36},
-  pistol:{n:'권총',rpm:450,dmg:48,pel:1,spr:.03,hole:0,mag:15,res:45,kick:.018,auto:0,rel:1.4,fo:[11,20,.6]}};
+  pistol:{n:'권총',rpm:450,dmg:48,pel:1,spr:.03,hole:0,mag:15,res:45,kick:.018,auto:0,rel:1.4,fo:[11,20,.6]},
+  shield:{n:'방탄 방패 + 권총',rpm:300,dmg:48,pel:1,spr:.075,hole:0,mag:15,res:45,kick:.02,auto:0,rel:1.6,fo:[11,20,.6],shield:1}};   // while it is out, rounds from the front stop on it
 // Operators: [attackers, defenders]. g = gadget name (G key), nade = throwable (T key), d = menu description.
 // cls is Siege's weight class: 1 light (fast, least health), 2 medium, 3 heavy (slow, most health).
 const HP=[0,100,110,125],SPD=[0,1.08,1,.92];
@@ -16,11 +17,13 @@ const OPS=[[
   {n:'돌파병',cls:1,guns:['ar','pistol'],g:'돌파 폭약',gad:3,nade:'frag',nn:1,d:'돌격소총 · 돌파 폭약 ×3 · 수류탄'},
   {n:'해머',cls:2,guns:['sg','smg'],g:'해머',gad:8,hammer:1,nade:'flash',nn:2,d:'산탄총 · 벽을 한 방에 부수는 해머 · 섬광탄 ×2'},
   {n:'용접병',cls:2,guns:['ar','pistol'],g:'용접 폭약',gad:2,thermal:1,nade:'smoke',nn:2,d:'보강벽·보강 해치까지 뚫는 폭약 ×2 · 연막탄 ×2'},
-  {n:'지정사수',cls:2,guns:['dmr','pistol'],g:'돌파 폭약',gad:1,nade:'clay',nn:2,d:'한 발이 센 반자동 소총 · 클레이모어 ×2 (밟으면 폭발)'}],[
+  {n:'지정사수',cls:2,guns:['dmr','pistol'],g:'돌파 폭약',gad:1,nade:'clay',nn:2,d:'한 발이 센 반자동 소총 · 클레이모어 ×2 (밟으면 폭발)'},
+  {n:'방패병',cls:3,guns:['shield','pistol'],g:'돌파 폭약',gad:1,nade:'smoke',nn:2,d:'방탄 방패: 들고 있으면 정면 총알을 막는다 · 연막탄 ×2'}],[
   {n:'보강병',cls:2,guns:['smg','sg'],g:'벽 보강',gad:4,nade:'shield',nn:1,d:'벽·해치 보강 ×4 · 설치형 방패'},
   {n:'방탄병',cls:3,guns:['ar','pistol'],g:'벽 보강',gad:2,hp:150,nade:'wire',nn:2,d:'방탄판 · 벽·해치 보강 ×2 · 철조망 ×2 (적이 느려짐)'},
   {n:'감지병',cls:1,guns:['smg','pistol'],g:'심박 감지',gad:0,sensor:1,nade:'c4',nn:1,d:'G 누르는 동안 벽 너머 적 감지 · C4 (T 던지고 T 기폭)'},
-  {n:'함정병',cls:2,guns:['sg','pistol'],g:'문 함정',gad:3,trap:1,nade:'impact',nn:1,d:'문에 폭발 함정 ×3 (적이 지나가면 터짐)'}]];
+  {n:'함정병',cls:2,guns:['sg','pistol'],g:'문 함정',gad:3,trap:1,nade:'impact',nn:1,d:'문에 폭발 함정 ×3 (적이 지나가면 터짐)'},
+  {n:'의무병',cls:2,guns:['smg','pistol'],g:'치료 주사',gad:3,heal:1,nade:'impact',nn:1,d:'G: 조준한 아군(없으면 자신) 체력 +40 ×3'}]];
 cfg.ops=cfg.ops.map((v,i)=>clamp(v,0,OPS[i].length-1));
 
 // x, y (storey folded in), h = feet above that storey's floor, z = eye height above the feet, a = yaw, pa = pitch angle (pitch = its tangent)
@@ -50,10 +53,13 @@ function hitFoe(t,dmg,hs){                       // my bullet or blade landed on
   if(isHost&&t.bot)botHurt(t,dmg,me,hs);else send({t:'d',to:t.id,dmg,hs:hs?1:0});
 }
 // from: who or what did it — a player/bot object, or just {x,y} for the direction marker.
-function hurt(d,by,from,hs){
+function hurt(d,by,from,hs,bul){                  // bul: it was a bullet (a shield can stop it)
   if(me.dead)return;
   if(me.drone===1&&phase==='prep'){me.drone=2;sfx.crash(me.x,me.y);return}   // my scouting drone got shot
   if(phase!=='act')return;
+  if(bul&&d<500&&curGun().shield&&!me.rap&&from&&floorOf(from.y)===floorOf(me.y)&&Math.cos(Math.atan2(fold(from.y)-fold(me.y),from.x-me.x)-me.a)>.45){
+    sfx.steel(me.x,me.y);spawnP(me.x+Math.cos(me.a)*.3,me.y+Math.sin(me.a)*.3,me.h+.4,3,SPARK,2,.2,1);return;   // the ballistic shield took it
+  }
   me.hp-=d;hurtT=.5;sfx.hurt();
   if(from&&from.x!==undefined)hurtA=Math.atan2(fold(from.y)-fold(me.y),from.x-me.x);
   if(me.hp>0)return;
@@ -99,6 +105,14 @@ function gadget(){
   const o=op(),hc=aimHatch();
   if(charge>=0)return explode(charge,1,o.thermal);
   if(!me.gad||o.sensor)return;
+  if(o.heal){                                    // medic: the teammate under the crosshair, or myself
+    const dx=Math.cos(me.a),dy=Math.sin(me.a),near=t=>{const rx=t.x-me.x,ry=fold(t.y)-fold(me.y),al=rx*dx+ry*dy;return al>0&&al<2.2&&Math.abs(rx*dy-ry*dx)<.5};
+    const t=Object.values(others).find(t=>t.team===me.team&&!t.dead&&t.z>.2&&floorOf(t.y)===floorOf(me.y)&&near(t));
+    if(t){if(isHost&&t.bot)t.hp=Math.min(100,t.hp+40);else send({t:'hl',to:t.id})}
+    else if(me.hp<me.maxHp)me.hp=Math.min(me.maxHp,me.hp+40);
+    else return;
+    me.gad--;return sfx.ui();
+  }
   if(hc>=0){
     const s=hatch[hc];
     if(o.trap)return;
@@ -254,7 +268,7 @@ function botHurt(b,dmg,from,hs){
   if(b.hp<=0)toAll({t:'k',id:b.id,by:from&&from.name||'?',bi:from&&from.id!==undefined?from.id:-1,hs:hs?1:0});
 }
 function hitBy(b,t,dmg){                         // a bot's bullet landed on t
-  if(t===me)hurt(dmg,b.name,b);else if(t.bot)botHurt(t,dmg,b);else relay({t:'d',id:b.id,to:t.id,dmg,hs:0},-1);
+  if(t===me)hurt(dmg,b.name,b,0,1);else if(t.bot)botHurt(t,dmg,b);else relay({t:'d',id:b.id,to:t.id,dmg,hs:0},-1);
 }
 function updBot(b,dt){
   b.blind-=dt;b.flash-=dt;b.mv=0;b.tx=b.x;b.ty=b.y;

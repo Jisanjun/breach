@@ -14,7 +14,7 @@ for(const s of [scene,vscene]){
   s.add(new THREE.AmbientLight(0xffffff,1.9),sun);
 }
 const loader=new GLTFLoader(),load=f=>loader.loadAsync('assets/'+f+'.glb');
-const CHARS=[['j','h','r'],['d','g','n']],GUNM={ar:'n',smg:'g',sg:'h',dmr:'e',pistol:'a'};    // character looks per team, gun model per weapon
+const CHARS=[['j','h','r'],['d','g','n']],GUNM={ar:'n',smg:'g',sg:'h',dmr:'e',pistol:'a',shield:'a'};    // character looks per team, gun model per weapon
 const chars={},guns={},inst={};
 await Promise.all([
   ...CHARS.flat().map(async c=>{chars[c]=await load('character-'+c)}),

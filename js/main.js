@@ -161,6 +161,9 @@ function selfTest(){
   const cn={k:'c4',x:13.5,y:G+17.5,z:.5,vx:0,vy:3,vz:0,fuse:NADE.c4.fuse};nades.length=0;nades.push(cn);
   for(let i=0;i<120;i++)updNades(.016);
   ok(cn.stuck&&nades.length===1&&cn.y<G+20.5,'C4 stays where it lands and waits');nades.length=0;
+  me.guns=['shield','pistol'];gun=0;me.hp=me.maxHp=100;Object.assign(me,{x:15.5,y:G+17.5,a:0,dead:0,rap:0});
+  hurt(40,'t',{x:18.5,y:G+17.5},0,1);const front=me.hp;hurt(40,'t',{x:12.5,y:G+17.5},0,1);
+  ok(front===100&&me.hp===60,'ballistic shield stops rounds from the front only');me.guns=['ar','pistol'];
   phase='lobby';
   const sides=()=>(fillBots(),[0,1].map(t=>roster.filter(p=>p.team===t).length).join());
   roster=[{id:0,team:0}];fillTo=6;ok(sides()==='1,5','1 v 5: bots only on the side with no humans');

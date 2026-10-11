@@ -224,6 +224,11 @@ function render(){
     const a=clamp((cfg.fov-fov)/(cfg.fov-(curGun().zoom||.55)),0,1);
     if(!window.modelsReady)drawGun(me.guns[gun],a);
     if(muzzle>0){ctx.fillStyle='rgba(255,220,150,.06)';ctx.fillRect(0,0,W,H)}
+    if(curGun().shield){                                       // the ballistic shield: lower left of the view, with its window
+      ctx.fillStyle='rgba(22,24,28,.94)';ctx.fillRect(W*.06,H*.4,W*.5,H*.6);
+      ctx.fillStyle='rgba(130,170,200,.3)';ctx.fillRect(W*.17,H*.46,W*.28,H*.13);
+      ctx.strokeStyle='#0c0d10';ctx.lineWidth=3;ctx.strokeRect(W*.06,H*.4,W*.5,H*.6);ctx.strokeRect(W*.17,H*.46,W*.28,H*.13);
+    }
     ctx.fillStyle='#fff';
     if(a<.5){const g=4+moving*4+Math.max(0,fireT)*20|0;ctx.fillRect(W/2-g-4,H/2,4,1);ctx.fillRect(W/2+g+1,H/2,4,1);ctx.fillRect(W/2,H/2-g-4,1,4);ctx.fillRect(W/2,H/2+g+1,1,4)}
     else ctx.fillRect(W/2-1,H/2-1,2,2);

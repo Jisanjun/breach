@@ -78,7 +78,12 @@ addEventListener('keydown',e=>{
     case 'KeyT':throwNade();break;
     case 'KeyB':tryBarricade();break;
     case 'KeyZ':doPing();break;
-    case 'Digit1':case 'Digit2':swapGun(+e.code[5]-1);break;
+    case 'Digit1':case 'Digit2':case 'Digit3':case 'Digit4':{
+      const n=+e.code[5]-1;
+      if(phase==='prep'&&isAtk()&&!me.dead){me.grp=n;[me.sx,me.sy]=spawns[n][me.slot%5];sfx.ui()}   // attackers pick the side they come in from; the body waits there
+      else if(n<2)swapGun(n);
+      break;
+    }
     case 'KeyX':swapGun(1-gun);break;
     case 'Space':vault();break;
     case 'Enter':if(isHost&&phase==='prep')phaseEnd=0;break;       // host skips the rest of prep; hostTick announces the phase change
@@ -130,11 +135,12 @@ function hud(){
   else if(!locked())m='화면을 클릭하면 조작 시작';
   else if(holdT>0){m=isAtk()?'디퓨저 설치 중':'디퓨저 해제 중';prog=holdT/5}
   else if(me.rap){const k=spaceAct().k;m='레펠 — [W/S] 오르내리기 · [A/D] 옆으로'+(k===1?' · [Space] 들어가기':k===2?' · [Space] 줄 풀기':'')}
-  else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경'+(isHost?' · [Enter] 준비 건너뛰기':'');
+  else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+(isAtk()?' · [1-4] 진입 방향: '+'북남서동'[me.grp]:'')+' · [O] 오퍼레이터 변경'+(isHost?' · [Enter] 준비 건너뛰기':'');
   else if(charge>=0)m='[G] 폭약 기폭';
   else if(isAtk()&&!defuser&&inSite(me.x,me.y))m='목표 구역 — [F] 꾹 눌러 디퓨저 설치';
   else if(!isAtk()&&defuser&&near3(me,defuser.x,defuser.y,.2)<1.3)m='[F] 꾹 눌러 디퓨저 해제';
   else if(sensing)m='심박 감지 중';
+  else if(o.heal)m=me.gad?'[G] 치료 주사 — 조준한 아군, 없으면 나':'';
   else if(hc>=0){                                               // a floor hatch under the crosshair, or overhead
     const st2=hatch[hc],can=me.gad&&!o.sensor&&!o.trap;
     m=st2===3?'':isAtk()?(can&&(st2===1||o.thermal)?'[G] 해치 파괴':st2===2?'보강된 해치 — 용접 폭약 필요':'')+(st2===1?' · [V] 타격 (3번)':''):st2===1?(can?'[G] 해치 보강 · ':'')+'[V] 타격 (3번)':'보강된 해치';

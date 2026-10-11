@@ -4,7 +4,7 @@
 // ponytail: signalling and TURN relay are PeerJS's free public servers — best effort, no uptime promise.
 // Upgrade path: own PeerServer + TURN (pass {host,config} to new Peer), or swap this file for a WebSocket relay.
 const ROOM='breach-fps-',room=new URLSearchParams(location.search).get('room');
-const EV=['h','fh','x','rf','b','d','k','f','g','ge','bd','tp','tr','p','hx','hr','hm','w','wx','sh'];   // game events a client may send; the host relays them
+const EV=['h','fh','x','rf','b','d','k','f','g','ge','bd','tp','tr','p','hx','hr','hm','w','wx','sh','hl'];   // game events a client may send; the host relays them
 const REQ=['pl','df','team'];                    // requests only the host decides on
 const BOTN=[['알파','브라보','찰리','델타','에코'],['폭스','골프','호텔','인디아','줄리엣']];
 let peer,hostConn,isHost=0,roster=[],nextId=1,roundSize=[0,0];
@@ -46,6 +46,11 @@ function onNet(m){
     case 'w':if(okCell(c)&&o&&!grid[c])wires[c]=o.team;break;
     case 'wx':if(okCell(c))delete wires[c];break;
     case 'sh':if(okCell(c))placeShield(c,m.o?1:0);break;
+    case 'hl':                                    // a medic's injection: for me, or (host) for one of the bots
+      if(!o||phase!=='act')break;
+      if(m.to===me.id&&o.team===me.team&&!me.dead)me.hp=Math.min(me.maxHp,me.hp+40);
+      else if(isHost&&others[m.to]&&others[m.to].bot&&others[m.to].team===o.team)others[m.to].hp=Math.min(100,others[m.to].hp+40);
+      break;
     case 'tr':if(okCell(c))trapBoom(c);break;
     case 'p':if(o&&o.team===me.team&&inMap(m.x,m.y)&&num(m.z))addPing(m.x,m.y,clamp(m.z,0,1),o.name);break;
     case 'g':
@@ -60,7 +65,7 @@ function onNet(m){
       break;
     case 'd':                                     // someone's shot landed: on me, or (host) on one of the bots
       if(!o)break;
-      if(m.to===me.id)hurt(clamp(+m.dmg||0,0,999),o.name,o,m.hs);
+      if(m.to===me.id)hurt(clamp(+m.dmg||0,0,999),o.name,o,m.hs,1);
       else if(isHost&&others[m.to]&&others[m.to].bot)botHurt(others[m.to],clamp(+m.dmg||0,0,999),o,m.hs);
       break;
     case 'k':
@@ -94,6 +99,7 @@ function onNet(m){
         const p=id===me.id?me:others[id];if(!p)continue;
         const s=p.team===atkTeam?atkSpawn(slot):defSpawn(slot);
         p.x=p.tx=s[0];p.y=p.ty=s[1];p.h=0;p.dead=0;
+        if(p===me){me.slot=slot;me.grp=spawnGrp}
         if(isHost&&p.bot)initBot(p,slot);
       }
       if(!me.dead)resetMe();
