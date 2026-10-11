@@ -120,7 +120,7 @@ function hud(){
   put('opName',me.dead?'':me.drone?'드론':o.n);
   put('ammo',off?'':reloadT>0?'장전 중':ammo[gun]+' / '+res[gun]);
   put('gunName',off?'':g.n+'  ['+(gun+1)+']');
-  put('gads',off?'':'[G] '+o.g+(o.sensor?'':' ×'+me.gad)+'\n[T] '+NADE[o.nade].n+' ×'+me.nn);
+  put('gads',off?'':'[G] '+o.g+(o.sensor?'':' ×'+me.gad)+'\n[T] '+NADE[o.nade].n+(nades.some(n=>n.mine&&n.k==='c4')?' 기폭':' ×'+me.nn));
   put('note',killT>0?'처치':'');
   let m='',prog=0;const hc=aimHatch();
   if(phase==='end')m='';

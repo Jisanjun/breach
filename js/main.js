@@ -34,7 +34,8 @@ function update(dt){
   if(me.rap&&!act)me.rap=0;
   if(me.rap)rappel(f,s,dt);
   else if(moving){
-    const v=drone?3.6:(ads?1.6:keys.KeyC?1.4:keys.ShiftLeft?4.2:2.8)*SPD[op().cls],sp=v*dt/Math.hypot(f,s);
+    const wc=wires[(me.y|0)*MW+(me.x|0)],drag=wc!==undefined&&wc!==me.team?.45:1;        // the other side's barbed wire
+    const v=drone?3.6:(ads?1.6:keys.KeyC?1.4:keys.ShiftLeft?4.2:2.8)*SPD[op().cls]*drag,sp=v*dt/Math.hypot(f,s);
     tryMove(me.x+(ca*f-sa*s)*sp,me.y,drone);tryMove(me.x,me.y+(sa*f+ca*s)*sp,drone);
     bob+=dt*v*2.4;
     if(!drone&&v>2&&(stepT-=dt*v)<0){stepT=1.8;noise(.06,.12,220)}        // my own footsteps, quiet
@@ -150,6 +151,13 @@ function selfTest(){
   const rw=(U+27)*MW+11;vault();ok(me.rap===1&&me.y>U+28,'a boarded window keeps you on the rope');
   destroy(rw);vault();ok(!me.rap&&(me.y|0)===U+26&&me.h===0,'through the opened window into the room');
   Object.assign(me,{x:11.5,y:G+26.5,a:Math.PI/2,h:0});vault();ok((me.y|0)===G+26,'no rope indoors, and a brick wall is not a window');
+  const sc=(G+18)*MW+15;placeShield(sc,1);
+  ok(grid[sc]===SHIELD&&Math.abs(trace(15.5,G+17.2,.3,0,1,0,6,0)-1.3)<1e-6&&trace(15.5,G+17.2,.8,0,1,0,6,-1)>1.4,'deployable shield: stops low shots, open above');
+  Object.assign(me,{x:15.5,y:G+17.5,a:Math.PI/2,h:0});vault();ok((me.y|0)===G+19,'Space climbs over a shield');
+  destroy(sc);ok(!grid[sc]&&!holes[sc*TEX+3],'and a blast clears it away');
+  const cn={k:'c4',x:13.5,y:G+17.5,z:.5,vx:0,vy:3,vz:0,fuse:NADE.c4.fuse};nades.length=0;nades.push(cn);
+  for(let i=0;i<120;i++)updNades(.016);
+  ok(cn.stuck&&nades.length===1&&cn.y<G+20.5,'C4 stays where it lands and waits');nades.length=0;
   phase='lobby';
   const sides=()=>(fillBots(),[0,1].map(t=>roster.filter(p=>p.team===t).length).join());
   roster=[{id:0,team:0}];fillTo=6;ok(sides()==='1,5','1 v 5: bots only on the side with no humans');

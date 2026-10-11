@@ -15,10 +15,10 @@ const OPS=[[
   {n:'돌파병',cls:1,guns:['ar','pistol'],g:'돌파 폭약',gad:3,nade:'frag',nn:1,d:'돌격소총 · 돌파 폭약 ×3 · 수류탄'},
   {n:'해머',cls:2,guns:['sg','smg'],g:'해머',gad:8,hammer:1,nade:'flash',nn:2,d:'산탄총 · 벽을 한 방에 부수는 해머 · 섬광탄 ×2'},
   {n:'용접병',cls:2,guns:['ar','pistol'],g:'용접 폭약',gad:2,thermal:1,nade:'smoke',nn:2,d:'보강벽·보강 해치까지 뚫는 폭약 ×2 · 연막탄 ×2'},
-  {n:'지정사수',cls:2,guns:['dmr','pistol'],g:'돌파 폭약',gad:1,nade:'flash',nn:2,d:'한 발이 센 반자동 소총 · 섬광탄 ×2'}],[
-  {n:'보강병',cls:2,guns:['smg','sg'],g:'벽 보강',gad:4,nade:'impact',nn:2,d:'벽·해치 보강 ×4 · 충격 수류탄 ×2'},
-  {n:'방탄병',cls:3,guns:['ar','pistol'],g:'벽 보강',gad:2,hp:150,nade:'impact',nn:1,d:'방탄판 · 벽·해치 보강 ×2'},
-  {n:'감지병',cls:1,guns:['smg','pistol'],g:'심박 감지',gad:0,sensor:1,nade:'impact',nn:2,d:'G 누르는 동안 벽 너머 적 감지'},
+  {n:'지정사수',cls:2,guns:['dmr','pistol'],g:'돌파 폭약',gad:1,nade:'clay',nn:2,d:'한 발이 센 반자동 소총 · 클레이모어 ×2 (밟으면 폭발)'}],[
+  {n:'보강병',cls:2,guns:['smg','sg'],g:'벽 보강',gad:4,nade:'shield',nn:1,d:'벽·해치 보강 ×4 · 설치형 방패'},
+  {n:'방탄병',cls:3,guns:['ar','pistol'],g:'벽 보강',gad:2,hp:150,nade:'wire',nn:2,d:'방탄판 · 벽·해치 보강 ×2 · 철조망 ×2 (적이 느려짐)'},
+  {n:'감지병',cls:1,guns:['smg','pistol'],g:'심박 감지',gad:0,sensor:1,nade:'c4',nn:1,d:'G 누르는 동안 벽 너머 적 감지 · C4 (T 던지고 T 기폭)'},
   {n:'함정병',cls:2,guns:['sg','pistol'],g:'문 함정',gad:3,trap:1,nade:'impact',nn:1,d:'문에 폭발 함정 ×3 (적이 지나가면 터짐)'}]];
 cfg.ops=cfg.ops.map((v,i)=>clamp(v,0,OPS[i].length-1));
 
@@ -29,7 +29,7 @@ const bomb={x:0,y:0};                            // marks the objective room
 let mode='menu',phase='lobby',phaseEnd=0,actDur=180,atkTeam=0,score=[0,0],msg='',site=0,spawnGrp=0,offline=0,fillTo=0;
 let others={},gun=0,ammo=[0,0],res=[0,0],fov=cfg.fov,charge=-1,defuser=null,holdT=0,beepT=0,specI=0,sensing=0,flashT=0,fade=0;
 let fireT=0,reloadT=0,meleeT=0,nadeT=0,muzzle=0,hitT=0,hitHS=0,hurtT=0,hurtA=0,boomT=0,killT=0,bob=0,deathMsg='',feedV=0,shots=0;
-const feedL=[],stats={},pings=[],traps={},flows={};
+const feedL=[],stats={},pings=[],traps={},wires={},flows={};   // traps, wires: cell -> team that set it
 me.op=OPS[0][cfg.ops[0]];                        // the operator I'm equipped as; a menu pick only takes effect at the next loadout
 const isAtk=()=>me.team===atkTeam,side=()=>isAtk()?0:1,op=()=>me.op;
 const canAct=()=>!me.dead&&(phase==='act'||phase==='prep'&&!isAtk());
@@ -126,11 +126,28 @@ function melee(){
     const rx=t.x-cam.x,ry=fold(t.y)-fold(cam.y),al=rx*dx+ry*dy;
     if(!t.dead&&t.z>.05&&al>0&&al<Math.min(d,1.1)&&Math.abs(rx*dy-ry*dx)<.3&&Math.abs(absZ(t.y,t.h)-absZ(me.y,me.h))<.6)return hitFoe(t,999);
   }
+  const wc=[(me.y|0)*MW+(me.x|0),((me.y+dy*.9)|0)*MW+((me.x+dx*.9)|0)].find(k=>wires[k]!==undefined&&wires[k]!==me.team);
+  if(wc!==undefined){delete wires[wc];send({t:'wx',c:wc});return sfx.clink(me.x,me.y)}     // cut the other side's barbed wire
   if(hc>=0)hitHatch(hc,1);else if(c>=0)punch(c,u,v,5,1);
 }
 function throwNade(){
-  const k=op().nade;
-  if(!canAct()||!me.nn||nadeT>0||!k)return;
+  const k=op().nade,live=nades.find(n=>n.mine&&n.k==='c4');
+  if(!canAct()||nadeT>0||!k)return;
+  if(live){                                      // second press: set off the C4 I threw
+    nades.splice(nades.indexOf(live),1);nadeT=.5;send({t:'ge',k:'c4',x:live.x,y:live.y,z:live.z,c:-1});
+    return nadeBoom('c4',live.x,live.y,live.z,-1,me);
+  }
+  if(!me.nn)return;
+  if(NADE[k].place){                             // set down on the floor cell ahead instead of thrown
+    const ca=Math.cos(me.a),sa=Math.sin(me.a),ax=Math.abs(ca)>Math.abs(sa),c=((me.y|0)+(ax?0:Math.sign(sa)))*MW+(me.x|0)+(ax?Math.sign(ca):0);
+    if(me.rap||grid[c]||nofloor[c]||ramp[c]||hatch[c]||wires[c]!==undefined||traps[c]!==undefined)return;
+    if(Object.values(others).some(o=>!o.dead&&(o.y|0)*MW+(o.x|0)===c))return;
+    me.nn--;nadeT=.8;sfx.place();
+    if(k==='shield')placeShield(c,ax?0:1,1);
+    else if(k==='wire'){wires[c]=me.team;send({t:'w',c})}
+    else{traps[c]=me.team;send({t:'tp',c})}       // claymore: goes off under the first enemy to step on it
+    return;
+  }
   me.nn--;nadeT=.8;sfx.melee();
   const cp=Math.cos(me.pa),ca=Math.cos(me.a)*cp,sa=Math.sin(me.a)*cp,ok=nadeSolid(cam.x+ca*.3,cam.y+sa*.3,cam.z)<0;
   const n={k,x:cam.x+(ok?ca*.3:0),y:cam.y+(ok?sa*.3:0),z:cam.z,vx:ca*7,vy:sa*7,vz:Math.sin(me.pa)*7+1.1,fuse:NADE[k].fuse,mine:1};
@@ -153,7 +170,7 @@ function rapFace(c,dx,dy){const w=c+dx+dy*MW;return face(w)||face(w+OFFC)||ledge
 function spaceAct(){                             // what Space would do now: k 1 climb to cell t, 2 let go of the rope, 3 clip on
   const ca=Math.cos(me.a),sa=Math.sin(me.a),ax=Math.abs(ca)>Math.abs(sa);
   const dx=me.rap?me.rx:ax?Math.sign(ca):0,dy=me.rap?me.ry:ax?0:Math.sign(sa),c=(me.y|0)*MW+(me.x|0),w=c+dx+dy*MW;
-  const t=winOpen(w)?w+dx+dy*MW:me.rap&&nofloor[c]&&!grid[w]?w:-1;
+  const t=winOpen(w)||grid[w]===SHIELD?w+dx+dy*MW:me.rap&&nofloor[c]&&!grid[w]?w:-1;   // over a sill or a shield, or (off the rope) onto a ledge
   if(t>=0&&me.h<.5&&!grid[t]&&!nofloor[t])return {k:1,t};
   if(me.rap)return {k:!nofloor[c]&&me.h<.3?2:0};
   return {k:isAtk()&&phase==='act'&&zone[c]===0&&!nofloor[c]&&me.h<.1&&rapFace(c,dx,dy)?3:0,dx,dy};
@@ -203,7 +220,7 @@ function flowTo(x,y){                            // steps-to-goal for every cell
   if(!f||now-f.t>500){
     f=flows[g]=f||{a:new Int16Array(NC)};f.t=now;f.a.fill(-1);
     const q=[g];f.a[g]=0;
-    for(let i=0;i<q.length;i++){const c=q[i];for(const n of rev(c))if(f.a[n]<0&&(!grid[n]||grid[n]===DOOR)&&!nofloor[n]){f.a[n]=f.a[c]+1;q.push(n)}}
+    for(let i=0;i<q.length;i++){const c=q[i];for(const n of rev(c))if(f.a[n]<0&&(!grid[n]||grid[n]===DOOR||grid[n]===SHIELD)&&!nofloor[n]){f.a[n]=f.a[c]+1;q.push(n)}}
   }
   return f.a;
 }
@@ -275,7 +292,8 @@ function botMove(b,dt){
   const tx=n%MW+.5,ty=(n/MW|0)+.5;
   if(Math.abs(n-c)>MW){b.x=tx;b.y=ty;return}                                   // onto the next storey: the top of the stairs, or down a hatch
   const l=Math.hypot(tx-b.x,ty-b.y);b.a=Math.atan2(ty-b.y,tx-b.x);
-  b.x+=(tx-b.x)/l*2*dt;b.y+=(ty-b.y)/l*2*dt;b.mv=2;b.walk+=2*dt;
+  const v=wires[c]!==undefined&&wires[c]!==b.team?.9:2;                        // barbed wire drags
+  b.x+=(tx-b.x)/l*v*dt;b.y+=(ty-b.y)/l*v*dt;b.mv=v;b.walk+=v*dt;
   if(traps[c]!==undefined&&traps[c]!==b.team){toAll({t:'tr',c});botHurt(b,70,{name:'함정'})}
 }
 
@@ -293,7 +311,7 @@ function resetMe(){
 function newRound(s,g){
   loadMap();site=s;spawnGrp=g;charge=-1;defuser=null;msg='';
   parts.length=nades.length=smokes.length=pings.length=0;
-  for(const c in traps)delete traps[c];for(const c in flows)delete flows[c];
+  for(const c in traps)delete traps[c];for(const c in wires)delete wires[c];for(const c in flows)delete flows[c];
   bomb.x=sites[s].x;bomb.y=sites[s].y;
 }
 const atkSpawn=i=>spawns[spawnGrp][i%5];

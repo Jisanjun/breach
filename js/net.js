@@ -4,7 +4,7 @@
 // ponytail: signalling and TURN relay are PeerJS's free public servers — best effort, no uptime promise.
 // Upgrade path: own PeerServer + TURN (pass {host,config} to new Peer), or swap this file for a WebSocket relay.
 const ROOM='breach-fps-',room=new URLSearchParams(location.search).get('room');
-const EV=['h','fh','x','rf','b','d','k','f','g','ge','bd','tp','tr','p','hx','hr','hm'];   // game events a client may send; the host relays them
+const EV=['h','fh','x','rf','b','d','k','f','g','ge','bd','tp','tr','p','hx','hr','hm','w','wx','sh'];   // game events a client may send; the host relays them
 const REQ=['pl','df','team'];                    // requests only the host decides on
 const BOTN=[['알파','브라보','찰리','델타','에코'],['폭스','골프','호텔','인디아','줄리엣']];
 let peer,hostConn,isHost=0,roster=[],nextId=1,roundSize=[0,0];
@@ -42,15 +42,18 @@ function onNet(m){
     case 'hx':if(okCell(c))openHatch(c);break;
     case 'hm':if(okCell(c))hitHatch(c);break;
     case 'hr':if(okCell(c)&&hatch[c]===1){hatch[c]=2;geoDirty=1;sfx.steel(c%MW+.5,(c/MW|0)+.5)}break;
-    case 'tp':if(okCell(c)&&o&&orig[c]===DOOR)traps[c]=o.team;break;
+    case 'tp':if(okCell(c)&&o&&(orig[c]===DOOR||!grid[c]))traps[c]=o.team;break;
+    case 'w':if(okCell(c)&&o&&!grid[c])wires[c]=o.team;break;
+    case 'wx':if(okCell(c))delete wires[c];break;
+    case 'sh':if(okCell(c))placeShield(c,m.o?1:0);break;
     case 'tr':if(okCell(c))trapBoom(c);break;
     case 'p':if(o&&o.team===me.team&&inMap(m.x,m.y)&&num(m.z))addPing(m.x,m.y,clamp(m.z,0,1),o.name);break;
     case 'g':
-      if(o&&NADE[m.k]&&inMap(m.x,m.y)&&[m.z,m.vx,m.vy,m.vz].every(num))
+      if(o&&NADE[m.k]&&!NADE[m.k].place&&inMap(m.x,m.y)&&[m.z,m.vx,m.vy,m.vz].every(num))
         nades.push({k:m.k,x:m.x,y:m.y,z:clamp(m.z,.05,.95),vx:clamp(m.vx,-9,9),vy:clamp(m.vy,-9,9),vz:clamp(m.vz,-9,9),fuse:NADE[m.k].fuse,own:m.id});
       break;
     case 'ge':
-      if(o&&NADE[m.k]&&inMap(m.x,m.y)&&num(m.z)){
+      if(o&&NADE[m.k]&&!NADE[m.k].place&&inMap(m.x,m.y)&&num(m.z)){
         const i=nades.findIndex(n=>n.own===m.id&&n.k===m.k);if(i>=0)nades.splice(i,1);
         nadeBoom(m.k,m.x,m.y,m.z,okCell(m.c)?m.c:-1,o);
       }
@@ -111,7 +114,9 @@ function onNet(m){
     case 'sync':                                  // joined mid-round: take the host's world and watch until the next round
       if(isHost)break;
       newRound(clamp(m.site|0,0,sites.length-1),clamp(m.grp|0,0,3));
-      if(Array.isArray(m.g)&&m.g.length===NC)for(let i=0;i<NC;i++)grid[i]=m.g[i]===HWALL?HWALL:clamp(m.g[i]|0,0,WIN);
+      if(Array.isArray(m.g)&&m.g.length===NC)for(let i=0;i<NC;i++)grid[i]=m.g[i]===HWALL||m.g[i]===SHIELD?m.g[i]:clamp(m.g[i]|0,0,WIN);
+      for(const k in m.so||{})if(okCell(+k))orient[+k]=m.so[k]?1:0;
+      for(const k in m.w||{})if(okCell(+k))wires[+k]=m.w[k]|0;
       for(const k in m.h||{}){
         const q=+k,a=m.h[k];
         if(okCell(q)&&Array.isArray(a)&&a.length===TEX){for(let u=0;u<TEX;u++)holes[q*TEX+u]=a[u]>>>0;holeN[q]=clamp(m.n&&m.n[k]|0,0,9999)}
@@ -151,13 +156,14 @@ function syncLobby(){
   toAll({t:'lobby',roster,score});
 }
 function syncMsg(){
-  const h={},n={},hs={},fh={},any=(a,c)=>{for(let u=0;u<TEX;u++)if(a[c*TEX+u])return 1};
+  const h={},n={},hs={},fh={},so={},any=(a,c)=>{for(let u=0;u<TEX;u++)if(a[c*TEX+u])return 1};
   for(let c=0;c<NC;c++){
+    if(grid[c]===SHIELD)so[c]=orient[c];
     if(holeN[c]&&grid[c]){h[c]=Array.from(holes.subarray(c*TEX,c*TEX+TEX));n[c]=holeN[c]}
     if(softF[c]&&any(fholes,c))fh[c]=Array.from(fholes.subarray(c*TEX,c*TEX+TEX));
     if(hatch[c])hs[c]=hatch[c];
   }
-  return {t:'sync',site,grp:spawnGrp,g:Array.from(grid),h,n,hs,fh,tr:traps,atk:atkTeam,act:actDur,phase,rem:phaseEnd-Date.now(),score,
+  return {t:'sync',site,grp:spawnGrp,g:Array.from(grid),h,n,hs,fh,so,w:wires,tr:traps,atk:atkTeam,act:actDur,phase,rem:phaseEnd-Date.now(),score,
     def:defuser&&[defuser.x,defuser.y],alive:roster.filter(p=>!(p.id===me.id?me:others[p.id]).dead).map(p=>p.id)};
 }
 function drop(id){

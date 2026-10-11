@@ -70,11 +70,20 @@ function destroy(c,hard){                        // hard: also takes out a reinf
     if(holeN[c]>9000)return;
     for(let u=0;u<TEX;u++)holes[c*TEX+u]|=WMID;
     holeN[c]=9999;dirtyM.add(c);
-  }else if(g===SOFT||g===DOOR||hard&&g===RTHIN){grid[c]=0;geoDirty=1}
-  else return;
+  }else if(g===SOFT||g===DOOR||g===SHIELD||hard&&g===RTHIN){
+    grid[c]=0;geoDirty=1;
+    if(g===SHIELD){holes.fill(0,c*TEX,c*TEX+TEX);holeN[c]=0;dirtyM.add(c)}
+  }else return;
   if(charge===c)charge=-1;
   const x=c%MW+.5,y=(c/MW|0)+.5;
-  spawnP(x,y,.5,26,g===SOFT?PLASTER:g===RTHIN?METAL:WOOD,3,1.1,1,2);sfx.crash(x,y);
+  spawnP(x,y,.5,26,g===SOFT?PLASTER:g===RTHIN||g===SHIELD?METAL:WOOD,3,1.1,1,2);sfx.crash(x,y);
+}
+// A deployable shield is a thin wall whose upper part is open from the start: it stops legs and low shots, and Space climbs over it.
+function placeShield(c,o,net){
+  if(grid[c]||nofloor[c]||ramp[c]||hatch[c])return;
+  grid[c]=SHIELD;orient[c]=o;holeN[c]=1;geoDirty=1;dirtyM.add(c);
+  for(let u=0;u<TEX;u++)holes[c*TEX+u]=0x3FFF;   // rows 0..13 from the top are air
+  sfx.steel(c%MW+.5,(c/MW|0)+.5);if(net)send({t:'sh',c,o});
 }
 function reinforce(c,net){
   if(grid[c]!==SOFT)return;
@@ -141,7 +150,7 @@ function seg(ox,oy,oz,dx,dy,slope,lim,hole,base){
         const ui=u*TEX|0,vi=clamp((1-oz-slope*tt)*TEX|0,0,TEX-1),open=holes[c*TEX+ui]>>>vi&1;
         if(hole===-2||!open){
           hitC=c;hitU=ui;hitV=vi;
-          if(hole<0||g===RTHIN||g===HWALL)return tt;
+          if(hole<0||g===RTHIN||g===HWALL||g===SHIELD)return tt;
           punch(c,ui,vi,hole,1);
           if(grid[c]&&!(holes[c*TEX+ui]>>>vi&1))return tt;     // stud, sill or lintel: the bullet stops
           pens.push(base+tt);
@@ -208,7 +217,9 @@ function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg){
 
 // ---------- grenades ----------
 // The thrower's simulation decides where and when it goes off ('ge' event); everyone else flies a look-alike.
-const NADE={frag:{fuse:2.4,n:'수류탄'},flash:{fuse:1.6,n:'섬광탄'},smoke:{fuse:1.4,n:'연막탄'},impact:{fuse:9,n:'충격 수류탄',hit:1}};
+// stick: stays where it first touches and waits for its owner's second press. place: not thrown at all, set down on the cell ahead.
+const NADE={frag:{fuse:2.4,n:'수류탄'},flash:{fuse:1.6,n:'섬광탄'},smoke:{fuse:1.4,n:'연막탄'},impact:{fuse:9,n:'충격 수류탄',hit:1},
+  c4:{fuse:1e9,n:'C4',stick:1},wire:{n:'철조망',place:1},shield:{n:'설치형 방패',place:1},clay:{n:'클레이모어',place:1}};
 const nades=[],smokes=[];
 function nadeSolid(x,y,z){                       // blocking cell at this point, or -1
   const cx=x|0,cy=y|0,c=cy*MW+cx,g=grid[c];
@@ -222,18 +233,19 @@ const gap=c=>nofloor[c]||hatch[c]===3;            // no floor to land on in this
 function updNades(dt){
   for(let i=nades.length;i--;){
     const n=nades[i];let hit=-1;
-    for(let k=Math.ceil(dt/.01),h=dt/k;k--;){
+    for(let k=n.stuck?0:Math.ceil(dt/.01),h=dt/k;k--;){
       n.vz-=3.2*h;
       let c=nadeSolid(n.x+n.vx*h,n.y,n.z);if(c>=0){n.vx*=-.4;hit=c}else n.x+=n.vx*h;
       c=nadeSolid(n.x,n.y+n.vy*h,n.z);if(c>=0){n.vy*=-.4;hit=c}else n.y+=n.vy*h;
       n.z+=n.vz*h;c=(n.y|0)*MW+(n.x|0);
       if(n.z<.04){
         if(n.y>=FH&&gap(c)){n.y-=FH;n.z+=1}                                    // falls to the storey below
-        else{if(n.vz<-.4||NADE[n.k].hit)hit=-2;n.z=.04;n.vz*=-.4;n.vx*=.7;n.vy*=.7}   // -2: bounced on the floor
+        else{if(n.vz<-.4||NADE[n.k].hit||NADE[n.k].stick)hit=-2;n.z=.04;n.vz*=-.4;n.vx*=.7;n.vy*=.7}   // -2: bounced on the floor
       }else if(n.z>.96){
         if(n.y<(NL-1)*FH){if(gap(c+OFFC)){n.y+=FH;n.z-=1}else{n.z=.96;n.vz*=-.4}}     // up through an opening, or off the ceiling
         else if(zone[c]){n.z=.96;n.vz*=-.4}                                    // top storey: a roof indoors, open sky outdoors
       }
+      if(hit!==-1&&NADE[n.k].stick){n.stuck=1;break}
     }
     n.fuse-=dt;
     if(hit!==-1&&!n.hush){sfx.clink(n.x,n.y);n.hush=.15}
@@ -261,7 +273,8 @@ function nadeBoom(k,x,y,z,c,own){
     for(const b of hostBots())if(near3(b,x,y,bz)<7&&sees(x,y,bz,b))b.blind=2.5;
     return;
   }
-  const big=k==='frag',R=big?3.4:1.7,D=big?130:55;
+  const big=k==='frag'||k==='c4',R=big?3.4:1.7,D=big?130:55;
+  for(const q in wires)if(floorOf(q/MW|0)===floorOf(y)&&Math.hypot(q%MW+.5-x,(q/MW|0)+.5-y)<R*.6)delete wires[q];   // blasts clear barbed wire
   sfx.boom(x,y,big);spawnP(x,y,bz,big?40:16,SOOT,4,.9,1,2);spawnP(x,y,bz,big?16:8,SPARK,5,.35,1);
   if(d<9)boomT=big?.5:.25;
   if((mine||foe)&&d<R&&sees(x,y,bz,me))hurt(D*(1-d/R),mine?'자폭':own.name,mine?{x,y}:own);
@@ -275,6 +288,7 @@ function nadeBoom(k,x,y,z,c,own){
   const r=big?1.3:.8,cx=x|0,cy=y|0,fc=cy*MW+cx,fu=(x-cx)*TEX|0,fv=(y-cy)*TEX|0;
   for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
     const q=(cy+j)*MW+cx+i,g=grid[q];
+    if(g===SHIELD&&big)destroy(q);               // a frag or C4 next to a deployable shield takes it out
     if(g!==SOFT&&g!==DOOR&&g!==WIN)continue;
     const o=orient[q],u=clamp(o?x-cx-i:y-cy-j,0,.999);
     if(Math.hypot(o?x-cx-i-u:x-cx-i-.5,o?y-cy-j-.5:y-cy-j-u)<r)punch(q,u*TEX|0,(1-bz)*TEX|0,big?9:6);

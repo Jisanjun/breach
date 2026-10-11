@@ -26,7 +26,8 @@ TEXL[L_HATCH]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(60,44,28):u===15||u===16?r
 TEXL[L_HATCHR]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(30,32,38):u%8===4&&v%8===4?rgb(160,160,170):rgb(70+n/2,76+n/2,88+n/2));
 TEXL[L_STUD]=mkTex((u,v,n)=>rgb(120+n,84+n,48+n));              // timber shown where plaster or flooring next to a stud or joist is gone
 TEXL[HWALL]=mkTex((u,v,n)=>v>27?gray(70):v%14===0||(u+(v/14|0)*8)%16===0?gray(120):gray(168,n*.5));   // solid interior wall: painted blockwork, so it never reads as plaster
-const NTEX=20;
+TEXL[SHIELD]=mkTex((u,v,n)=>v<16||u<2||u>29?rgb(24,26,30):v<22&&u>8&&u<23?rgb(96,128,150):(u%10===5)&&v%6===1?rgb(150,150,158):rgb(58+n/2,64+n/2,74+n/2));   // deployable shield: only the lower part is ever shown
+const NTEX=21;
 
 // ---------- sprites (64x64 array layers; the picture sits in the top-left w x h) ----------
 const SW=20,SH=36,SPRL=[];
@@ -63,6 +64,7 @@ const P_NADE=spr(mkTex((u,v)=>(u-3.5)**2+(v-3.5)**2<12?(v<2?rgb(150,150,150):rgb
 const P_TRAP=spr(mkTex((u,v)=>v<2?(u%4<2?rgb(255,60,40):0):rgb(60,60,66),16,4),16,4);
 const P_PUFF=spr(mkTex((u,v,n)=>{const r=(u-7.5)**2+(v-7.5)**2;return r<30||r<60&&(u+v&1)?rgb(170+n,172+n,176+n):0},16,16),16,16);
 const P_CHARGE=spr(mkTex((u,v)=>u>5&&u<10&&v<3?rgb(255,40,30):rgb(26,26,28),16,10),16,10);
+const P_WIRE=spr(mkTex((u,v)=>(u+v)%4===0||(u-v+16)%4===0?rgb(150,150,156):(u%6===0&&v%4===1)?rgb(210,210,214):0,32,8),32,8);
 const P_FLASH=spr(mkTex((u,v)=>(u-3.5)**2+(v-3.5)**2<14?rgb(255,230,120):0,8,8),8,8);
 // particle colours, as one-colour sprites
 const dot=(r,g,b)=>spr(mkTex(()=>rgb(r,g,b),4,4),4,4);

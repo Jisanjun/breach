@@ -30,7 +30,7 @@ const saveCfg=()=>{try{localStorage.setItem('breach',JSON.stringify(cfg))}catch(
 // The storeys are stored one after another in the same grid: storey f occupies rows f*FH .. f*FH+FH-1, at the same x and
 // local y. So a position is (x, y, h) with the storey folded into y, and walls, holes and pathfinding stay per-storey 2D.
 // The renderer and the ray tests stack the storeys: height = storey + h, and rays continue through open floors.
-const HARD=1,STEEL=2,BRICK=3,CRATE=4,SKYW=5,SOFT=6,DOOR=7,RTHIN=8,WIN=9,HWALL=19;   // >=SOFT is thin; SOFT/DOOR/WIN are destructible
+const HARD=1,STEEL=2,BRICK=3,CRATE=4,SKYW=5,SOFT=6,DOOR=7,RTHIN=8,WIN=9,HWALL=19,SHIELD=20;   // >=SOFT is thin; SOFT/DOOR/WIN are destructible; SHIELD is set down by players
 const WMID=0xFFFC0;                              // window: only rows 6..19 (the boards) open up; lintel and sill stay
 const FLOORS=[[
   '#####################################',

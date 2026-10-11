@@ -179,7 +179,8 @@ function render(){
   if(defuser)S(defuser,P_DEFUSER,.26,.16);
   if(charge>=0){const x=charge%MW+.5,y=(charge/MW|0)+.5,l=Math.hypot(ex-x,ez-fold(y))||1;S({x:x+(ex-x)/l*.08,y:y+(ez-fold(y))/l*.08},P_CHARGE,.3,.2,.4)}
   for(const c in traps)S({x:c%MW+.5,y:(c/MW|0)+.5},P_TRAP,.7,.05,.12);
-  for(const g of nades)S({x:g.x,y:g.y},P_NADE,.07,.07,g.z-.035);
+  for(const c in wires)S({x:c%MW+.5,y:(c/MW|0)+.5},P_WIRE,.95,.24,.01);
+  for(const g of nades)g.k==='c4'?S({x:g.x,y:g.y},P_CHARGE,.2,.13,g.z-.03):S({x:g.x,y:g.y},P_NADE,.07,.07,g.z-.035);
   for(const s of smokes){const k=Math.min(1,(14-s.t)*1.5,s.t/2)*1.2;for(const p of s.p)S({x:s.x+p[0],y:s.y+p[1]},P_PUFF,k,k,p[2]-k/2)}
   for(const o of Object.values(others)){
     if(o.z<.05)continue;                                       // destroyed drone
