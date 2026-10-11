@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 
 const renderer=new THREE.WebGLRenderer({canvas:glc,context:gl});
-renderer.autoClear=false;renderer.setPixelRatio(1);renderer.setSize(W,H,false);
+renderer.autoClear=false;renderer.setPixelRatio(1);renderer.setSize(glc.width,glc.height,false);
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(60,W/H,.04,90);
 const vscene=new THREE.Scene(),vcam=new THREE.PerspectiveCamera(50,W/H,.01,10);   // the weapon has its own scene so walls never clip it
 for(const s of [scene,vscene]){

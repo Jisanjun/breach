@@ -2,7 +2,7 @@
 // WebGL2 renderer. Storeys are stacked: world x = east, y = up (storey + height), z = south (local map y).
 // Wall and floor panels sample a mask atlas (one 32x32 slot per cell) and discard holed texels, so bullet holes are
 // real see-through geometry on every storey. The weapon, markers and screen effects go on the 2D canvas on top.
-const gl=glc.getContext('webgl2',{antialias:false,alpha:false});
+const gl=glc.getContext('webgl2',{antialias:true,alpha:false});
 const MCOLS=64,MROWS=Math.ceil(2*NC/MCOLS),labels=[];
 let prog,geoVao,geoBuf,geoN=0,dynVao,dynBuf,texWorld,texSpr,texMask,uMVP,uCam,vb=[],mvp=new Float32Array(16);
 
@@ -181,7 +181,7 @@ function render(){
     return [(mvp[0]*x+mvp[4]*y+mvp[8]*z+mvp[12])/w*W/2+W/2,H/2-(mvp[1]*x+mvp[5]*y+mvp[9]*z+mvp[13])/w*H/2];
   };
   syncMasks();if(geoDirty){buildGeo();geoDirty=0}
-  gl.viewport(0,0,W,H);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.viewport(0,0,glc.width,glc.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.uniformMatrix4fv(uMVP,false,mvp);gl.uniform3f(uCam,ex,ey,ez);
   gl.bindTexture(gl.TEXTURE_2D_ARRAY,texWorld);gl.bindVertexArray(geoVao);gl.drawArrays(gl.TRIANGLES,0,geoN);
 

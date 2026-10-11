@@ -14,6 +14,7 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font:14px/1.5 sys
 [hidden]{display:none!important}
 #view{position:fixed;inset:0}
 #view canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;display:block}
+#gl{image-rendering:auto!important}
 .c0{color:#6aa5ff}.c1{color:#ff9a3c}.c-1{color:#ccc}
 
 /* HUD */
@@ -66,7 +67,7 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
 </style>
 </head>
 <body>
-<div id="view"><canvas id="gl" width="480" height="270"></canvas><canvas id="cv" width="480" height="270"></canvas></div>
+<div id="view"><canvas id="gl" width="1600" height="900"></canvas><canvas id="cv" width="480" height="270"></canvas></div>
 <div id="hud" hidden>
   <div id="topbar"><span class="pips c0" id="pip0"></span><span class="sc c0" id="sc0"></span><span id="clock"></span><span class="sc c1" id="sc1"></span><span class="pips c1" id="pip1"></span></div>
   <div id="sub"></div>
@@ -147,7 +148,7 @@ Space: 열린 창문·설치형 방패 넘기 · 레펠(공격, 집 바깥벽 �
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'7.3';
+const V=location.hostname==='localhost'?Date.now():'7.4';
 for(const f of ['maps','core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>
