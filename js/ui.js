@@ -83,7 +83,7 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{keys[e.code]=0});
 addEventListener('mousemove',e=>{
   if(!locked())return;
-  const s=(ads?.0013:.0022)*cfg.sens;me.a+=e.movementX*s;me.pitch=clamp(me.pitch-e.movementY*s,-.7,.7);
+  const s=(ads?.0013:.0022)*cfg.sens;me.a+=e.movementX*s;me.pa=clamp(me.pa-e.movementY*s,-1.35,1.35);
 });
 addEventListener('mousedown',e=>{
   if(!locked())return;
@@ -110,7 +110,7 @@ function hud(){
   const now=Date.now(),s=Math.max(0,Math.ceil((phaseEnd-now)/1000)),o=op(),g=curGun(),off=me.drone||me.dead;
   put('clock',phase==='end'?'–:––':(s/60|0)+':'+String(s%60).padStart(2,'0'));
   const hot=defuser&&phase==='act'?'hot':'';if($('clock').className!==hot)$('clock').className=hot;
-  put('sub',phase==='end'?'':defuser?'디퓨저 작동 중 — '+(isAtk()?'지켜라':'해제하라'):(phase==='prep'?'준비 단계 · ':'')+(isAtk()?'공격':'방어')+(me.y>=FH?' · 2층':''));
+  put('sub',phase==='end'?'':defuser?'디퓨저 작동 중 — '+(isAtk()?'지켜라':'해제하라'):(phase==='prep'?'준비 단계 · ':'')+(isAtk()?'공격':'방어')+' · '+roomAt(cam.x,cam.y));
   const pip=t=>roster.filter(p=>p.team===t).map(p=>(p.id===me.id?me:others[p.id]||{dead:1}).dead?'○':'●').join('');
   put('pip0',pip(0));put('pip1',pip(1));put('sc0',''+score[0]);put('sc1',''+score[1]);
   put('hpNum',me.dead?'':''+Math.max(0,me.hp|0));setW('hpFill',me.dead?0:clamp(me.hp/me.maxHp*100,0,100));
@@ -119,7 +119,7 @@ function hud(){
   put('gunName',off?'':g.n+'  ['+(gun+1)+']');
   put('gads',off?'':'[G] '+o.g+(o.sensor?'':' ×'+me.gad)+'\n[T] '+NADE[o.nade].n+' ×'+me.nn);
   put('note',killT>0?'처치':'');
-  let m='',prog=0;const hc=aimHatch(),c0=(me.y|0)*MW+(me.x|0);
+  let m='',prog=0;const hc=aimHatch();
   if(phase==='end')m='';
   else if(me.dead){const sp=viewTarget();m=(deathMsg?deathMsg+'\n':'')+(sp?'관전: '+sp.name+' (클릭: 다음 팀원)':'다음 라운드 대기')}
   else if(!locked())m='화면을 클릭하면 조작 시작';
@@ -127,13 +127,12 @@ function hud(){
   else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경';
   else if(charge>=0)m='[G] 폭약 기폭';
   else if(isAtk()&&!defuser&&inSite(me.x,me.y))m='목표 구역 — [F] 꾹 눌러 디퓨저 설치';
-  else if(!isAtk()&&defuser&&Math.hypot(me.x-defuser.x,me.y-defuser.y)<1.3)m='[F] 꾹 눌러 디퓨저 해제';
+  else if(!isAtk()&&defuser&&near3(me,defuser.x,defuser.y,.2)<1.3)m='[F] 꾹 눌러 디퓨저 해제';
   else if(sensing)m='심박 감지 중';
   else if(hc>=0){                                               // a floor hatch under the crosshair, or overhead
     const st2=hatch[hc],can=me.gad&&!o.sensor&&!o.trap;
     m=st2===3?'':isAtk()?(can&&(st2===1||o.thermal)?'[G] 해치 파괴':st2===2?'보강된 해치 — 용접 폭약 필요':'')+(st2===1?' · [V] 타격 (3번)':''):st2===1?(can?'[G] 해치 보강 · ':'')+'[V] 타격 (3번)':'보강된 해치';
   }
-  else if(stair[c0])m='계단 — 벗어났다가 다시 밟으면 '+(me.y>=FH?'1층으로':'2층으로');
   else if(doorAhead(1)>=0)m='[B] 바리케이드 설치';
   else if(o.trap){const c=doorAhead(0);m=me.gad&&c>=0&&traps[c]===undefined?'[G] 문 함정 설치':''}
   else{

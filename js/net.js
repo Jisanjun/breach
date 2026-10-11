@@ -4,7 +4,7 @@
 // ponytail: signalling and TURN relay are PeerJS's free public servers — best effort, no uptime promise.
 // Upgrade path: own PeerServer + TURN (pass {host,config} to new Peer), or swap this file for a WebSocket relay.
 const ROOM='breach-fps-',room=new URLSearchParams(location.search).get('room');
-const EV=['h','x','rf','b','d','k','f','g','ge','bd','tp','tr','p','hx','hr','hm'];   // game events a client may send; the host relays them
+const EV=['h','fh','x','rf','b','d','k','f','g','ge','bd','tp','tr','p','hx','hr','hm'];   // game events a client may send; the host relays them
 const REQ=['pl','df','team'];                    // requests only the host decides on
 const BOTN=[['알파','브라보','찰리','델타','에코'],['폭스','골프','호텔','인디아','줄리엣']];
 let peer,hostConn,isHost=0,roster=[],nextId=1,roundSize=[0,0];
@@ -15,7 +15,7 @@ const nameOf=id=>id===me.id?me.name:others[id]?others[id].name:'?';
 const num=v=>typeof v==='number'&&isFinite(v);
 const okCell=c=>Number.isInteger(c)&&c>=0&&c<NC;
 const inMap=(x,y)=>num(x)&&num(y)&&x>=1&&y>=1&&x<MW-1&&y<MH-1;
-const okState=v=>Array.isArray(v)&&v.length===4&&v.every(num);
+const okState=v=>Array.isArray(v)&&v.length===5&&v.every(num);   // x, y, yaw, eye height, feet height
 function send(m){                                // my game event -> everyone else
   if(mode!=='mp')return;
   m.id=me.id;
@@ -27,20 +27,21 @@ function toAll(m){relay(m,-1);onNet(m)}          // host announcement, applied l
 function applyState(id,v){
   const o=others[id],now=Date.now();if(!o||!okState(v))return;
   if(!o.dead&&v[3]>.4&&now-o.stepT>330&&Math.hypot(v[0]-o.tx,v[1]-o.ty)>.13){o.stepT=now;sfx.step(v[0],v[1])}   // footsteps: standing and walking or faster
-  o.tx=v[0];o.ty=v[1];o.a=v[2];o.z=clamp(v[3],0,.5);
+  o.tx=v[0];o.ty=v[1];o.a=v[2];o.z=clamp(v[3],0,.5);o.h=clamp(v[4],0,1.2);
 }
 function onNet(m){
   if(!m||typeof m!=='object')return;
   const c=m.c,o=others[m.id];
   switch(m.t){
     case 'h':if(okCell(c))punch(c,m.u|0,m.v|0,Math.min(6,m.r|0));break;
+    case 'fh':if(okCell(c))punchFloor(c,m.u|0,m.v|0,Math.min(7,m.r|0));break;
     case 'x':if(okCell(c))destroy(c);break;
     case 'b':if(okCell(c))explode(c,0,m.th);break;
     case 'rf':if(okCell(c))reinforce(c);break;
     case 'bd':if(okCell(c))barricade(c);break;
     case 'hx':if(okCell(c))openHatch(c);break;
     case 'hm':if(okCell(c))hitHatch(c);break;
-    case 'hr':if(okCell(c)&&hatch[c]===1){hatch[c]=2;sfx.steel(c%MW+.5,(c/MW|0)+.5)}break;
+    case 'hr':if(okCell(c)&&hatch[c]===1){hatch[c]=2;geoDirty=1;sfx.steel(c%MW+.5,(c/MW|0)+.5)}break;
     case 'tp':if(okCell(c)&&o&&orig[c]===DOOR)traps[c]=o.team;break;
     case 'tr':if(okCell(c))trapBoom(c);break;
     case 'p':if(o&&o.team===me.team&&inMap(m.x,m.y)&&num(m.z))addPing(m.x,m.y,clamp(m.z,0,1),o.name);break;
@@ -75,7 +76,7 @@ function onNet(m){
       roster=m.roster;score=m.score;
       for(const p of roster){
         if(p.id===me.id){me.team=p.team;me.name=p.name;continue}
-        const q=others[p.id]||(others[p.id]={id:p.id,x:0,y:0,tx:0,ty:0,a:0,av:0,z:.5,dead:1,flash:0,stepT:0,walk:0,mv:0});
+        const q=others[p.id]||(others[p.id]={id:p.id,x:0,y:0,tx:0,ty:0,h:0,a:0,av:0,z:.5,dead:1,flash:0,stepT:0,walk:0,mv:0});
         q.name=p.name;q.team=p.team;q.bot=p.bot?1:0;
       }
       for(const id in others)if(!roster.some(p=>p.id===+id))delete others[id];
@@ -88,14 +89,14 @@ function onNet(m){
       for(const [id,slot] of m.sp){
         const p=id===me.id?me:others[id];if(!p)continue;
         const s=p.team===atkTeam?atkSpawn(slot):defSpawn(slot);
-        p.x=p.tx=s[0];p.y=p.ty=s[1];p.dead=0;
+        p.x=p.tx=s[0];p.y=p.ty=s[1];p.h=0;p.dead=0;
         if(isHost&&p.bot)initBot(p,slot);
       }
       if(!me.dead)resetMe();
-      showMenu(0);banner('라운드 '+m.n,(isAtk()?'공격 — 드론으로 정찰':'방어 — 벽을 보강하고 자리 잡기')+(site===2?' · 목표는 2층':''));sfx.horn();break;
+      showMenu(0);banner('라운드 '+m.n,(isAtk()?'공격':'방어')+' — 목표: '+roomAt(sites[site].x,sites[site].y));sfx.horn();break;
     case 'phase':
       phase='act';phaseEnd=Date.now()+actDur*1e3;
-      if(me.drone){me.drone=0;me.x=me.sx;me.y=me.sy;me.z=.5;me.pitch=0;me.onStair=0;me.a=Math.atan2(sites[site].y-me.y,sites[site].x-me.x)}   // back from the drone to the body
+      if(me.drone){me.drone=0;me.x=me.sx;me.y=me.sy;me.h=0;me.z=.5;me.pa=0;me.a=Math.atan2(fold(sites[site].y)-fold(me.y),sites[site].x-me.x)}   // back from the drone to the body
       banner('교전 개시',isAtk()?'디퓨저 설치 또는 전원 제압':'목표를 지켜라');sfx.horn();break;
     case 'planted':
       defuser={x:+m.x,y:+m.y,S:P_DEFUSER,h:.16,w:.26,flash:0};phaseEnd=Date.now()+35e3;
@@ -117,6 +118,8 @@ function onNet(m){
       }
       for(const k in m.tr||{})if(okCell(+k))traps[+k]=m.tr[k]|0;
       for(const k in m.hs||{})if(okCell(+k))hatch[+k]=clamp(m.hs[k]|0,0,3);
+      for(const k in m.fh||{}){const q=+k,a=m.fh[k];if(okCell(q)&&Array.isArray(a)&&a.length===TEX)for(let u=0;u<TEX;u++)fholes[q*TEX+u]=a[u]>>>0}
+      geoDirty=maskAll=1;
       atkTeam=m.atk;actDur=m.act;phase=m.phase;phaseEnd=Date.now()+(+m.rem||0);score=m.score;
       if(m.def)defuser={x:+m.def[0],y:+m.def[1],S:P_DEFUSER,h:.16,w:.26,flash:0};
       for(const id of m.alive||[])if(others[id])others[id].dead=0;
@@ -145,12 +148,13 @@ function syncLobby(){
   toAll({t:'lobby',roster,score});
 }
 function syncMsg(){
-  const h={},n={},hs={};
+  const h={},n={},hs={},fh={},any=(a,c)=>{for(let u=0;u<TEX;u++)if(a[c*TEX+u])return 1};
   for(let c=0;c<NC;c++){
     if(holeN[c]&&grid[c]){h[c]=Array.from(holes.subarray(c*TEX,c*TEX+TEX));n[c]=holeN[c]}
+    if(softF[c]&&any(fholes,c))fh[c]=Array.from(fholes.subarray(c*TEX,c*TEX+TEX));
     if(hatch[c])hs[c]=hatch[c];
   }
-  return {t:'sync',site,grp:spawnGrp,g:Array.from(grid),h,n,hs,tr:traps,atk:atkTeam,act:actDur,phase,rem:phaseEnd-Date.now(),score,
+  return {t:'sync',site,grp:spawnGrp,g:Array.from(grid),h,n,hs,fh,tr:traps,atk:atkTeam,act:actDur,phase,rem:phaseEnd-Date.now(),score,
     def:defuser&&[defuser.x,defuser.y],alive:roster.filter(p=>!(p.id===me.id?me:others[p.id]).dead).map(p=>p.id)};
 }
 function drop(id){
@@ -221,10 +225,10 @@ function hostTick(){
 }
 setInterval(()=>{                                // 15 Hz net tick (timers survive background tabs)
   if(mode!=='mp')return;
-  const r2=n=>+n.toFixed(2),v=[me.x,me.y,me.a,me.drone===2?0:me.z].map(r2);
-  if(!me.drone&&!me.dead){v[0]=r2(cam.x);v[1]=r2(cam.y)}         // leaning moves what others can hit
+  const r2=n=>+n.toFixed(2),lean=!me.drone&&!me.dead;           // leaning moves what others can hit
+  const v=[lean&&me.lx||me.x,lean&&me.ly||me.y,me.a,me.drone===2?0:me.z,me.h].map(r2);
   if(isHost){
-    snap[0]=v;for(const b of Object.values(others))if(b.bot)snap[b.id]=[b.x,b.y,b.a,b.z].map(r2);
+    snap[0]=v;for(const b of Object.values(others))if(b.bot)snap[b.id]=[b.x,b.y,b.a,b.z,b.h].map(r2);
     relay({t:'S',p:snap},-1);hostTick();
   }else if(hostConn&&hostConn.open)hostConn.send({t:'s',v});
 },66);

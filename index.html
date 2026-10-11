@@ -12,7 +12,8 @@
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;font:14px/1.5 system-ui,sans-serif;color:#eee;user-select:none}
 [hidden]{display:none!important}
-#cv{width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated;display:block}
+#view{position:fixed;inset:0}
+#view canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;display:block}
 .c0{color:#6aa5ff}.c1{color:#ff9a3c}.c-1{color:#ccc}
 
 /* HUD */
@@ -65,7 +66,7 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
 </style>
 </head>
 <body>
-<canvas id="cv" width="480" height="270"></canvas>
+<div id="view"><canvas id="gl" width="480" height="270"></canvas><canvas id="cv" width="480" height="270"></canvas></div>
 <div id="hud" hidden>
   <div id="topbar"><span class="pips c0" id="pip0"></span><span class="sc c0" id="sc0"></span><span id="clock"></span><span class="sc c1" id="sc1"></span><span class="pips c1" id="pip1"></span></div>
   <div id="sub"></div>
@@ -112,7 +113,7 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
     <span>시야각</span><input type="range" id="sFov">
   </div>
   <details><summary>조작법과 규칙</summary>
-  <pre id="help">WASD 이동 · Shift 달리기 · C 앉기 · Q/E 기울이기
+  <pre id="help">WASD 이동 · Shift 달리기 · C 앉기 · Q/E 기울이기 · 마우스로 위아래 자유 시점
 좌클릭 사격 · 우클릭 조준 · R 장전 · 1/2/X/휠 무기 교체
 V 근접 (문 3타, 창문 2타, 해치 3타) · G 가젯 · T 투척물
 B 열린 문에 바리케이드 · Z/휠클릭 핑 · Tab 점수판
@@ -121,19 +122,23 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 공격: 바닥이 붉은 방에 디퓨저를 설치하고 35초 지키거나, 방어팀 전멸
 방어: 3분 버티기, 공격팀 전멸, 또는 설치된 디퓨저 해제
 준비 단계: 공격팀은 드론 정찰, 방어팀은 벽·해치 보강. 4라운드 선승
-건물은 2층. 줄무늬 바닥이 계단이고, 2층 바닥의 해치를 부수면 아래층으로 뛰어내릴 수 있다
-해치는 위에서 내려다보거나 아래에서 올려다보며 G(폭약·해머·보강) 또는 V
-밝은 벽·문·창문 판자는 총알이 뚫는다. 구멍으로 보고 쏠 수 있고, 많이 뚫리면 통째로 무너진다
-벽돌·콘크리트·강철은 안 뚫린다. 보강한 벽과 해치는 용접 폭약으로만 뚫린다</pre>
+
+맵은 3층 주택(지하·1층·2층). 계단은 걸어서 오르내리고, 마당 북쪽 진입로로 내려가면 차고 문, 동쪽 계단은 2층 발코니
+나무 바닥은 총알이 뚫는다: 위층에서 아래로, 아래층에서 천장으로 쏠 수 있고 구멍으로 내려다볼 수 있다 (장선은 남음)
+해치를 열면 아래층으로 뛰어내린다. 위에서 내려다보거나 아래에서 올려다보며 G(폭약·해머·보강) 또는 V
+밝은 벽·문·창문 판자도 뚫린다. 벽돌·콘크리트·강철은 안 뚫리고, 보강한 벽과 해치는 용접 폭약으로만</pre>
   </details>
   <div id="ver"></div>
 </div></div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'4.0';
+const V=location.hostname==='localhost'?Date.now():'5.0';
 for(const f of ['core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
+document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>
+
 </body>
 </html>

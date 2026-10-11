@@ -152,6 +152,11 @@ const vig=document.createElement('canvas');vig.width=W;vig.height=H;
 
 function render(){
   if(!gl)return;
+  // three.js (models.js) shares this context and leaves its own state behind: put ours back
+  gl.useProgram(prog);gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.colorMask(true,true,true,true);
+  gl.disable(gl.BLEND);gl.disable(gl.CULL_FACE);gl.disable(gl.SCISSOR_TEST);gl.disable(gl.STENCIL_TEST);gl.clearColor(.56,.72,.9,1);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+  gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,texMask);gl.activeTexture(gl.TEXTURE0);
   const ca=Math.cos(cam.a),sa=Math.sin(cam.a),cp=Math.cos(cam.pa),sp=Math.sin(cam.pa);
   const ex=cam.x,ey=floorOf(cam.y)+cam.z,ez=fold(cam.y),fx=ca*cp,fy=sp,fz=sa*cp;             // eye and view direction
   // view-projection: right = (-sa,0,ca), up = (-ca*sp,cp,-sa*sp), forward = (fx,fy,fz); perspective from the horizontal half-angle tangent `fov`
@@ -178,11 +183,12 @@ function render(){
   for(const s of smokes){const k=Math.min(1,(14-s.t)*1.5,s.t/2)*1.2;for(const p of s.p)S({x:s.x+p[0],y:s.y+p[1]},P_PUFF,k,k,p[2]-k/2)}
   for(const o of Object.values(others)){
     if(o.z<.05)continue;                                       // destroyed drone
-    if(o.dead)S(o,CORPSE[o.team],.75,.14);
+    const model=window.modelsReady;                            // with models.js loaded, bodies are real 3D; sprites are the fallback
+    if(o.dead){if(!model)S(o,CORPSE[o.team],.75,.14)}
     else if(o.z<.2)S(o,P_DRONE,.24,.1);                        // a player driving a drone
     else{
       const back=Math.cos(o.av-Math.atan2(ez-fold(o.y),ex-o.x))<0?1:0,step=o.mv>.4?1+(o.walk*2.5&1):0;
-      S(o,OPSPR[o.team][back][step],(o.z+.12)*SW/SH,o.z+.12);
+      if(!model)S(o,OPSPR[o.team][back][step],(o.z+.12)*SW/SH,o.z+.12);
       if(o.flash>0)S({x:o.x+Math.cos(o.av)*.3,y:o.y+Math.sin(o.av)*.3,h:o.h},P_FLASH,.16,.16,o.z-.13);
       const top=toScreen(o.x,floorOf(o.y)+o.h+o.z+.2,fold(o.y));
       if(top&&o.team===me.team)labels.push(['▼ '+o.name,top[0],top[1],'#9cf']);                          // teammates show through walls and floors
@@ -197,6 +203,7 @@ function render(){
   }
   gl.bindTexture(gl.TEXTURE_2D_ARRAY,texSpr);gl.bindVertexArray(dynVao);gl.bindBuffer(gl.ARRAY_BUFFER,dynBuf);
   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vb),gl.DYNAMIC_DRAW);gl.drawArrays(gl.TRIANGLES,0,vb.length/9);
+  if(window.drawModels)drawModels(frameDt);
 
   // ---- 2D overlay ----
   ctx.clearRect(0,0,W,H);
@@ -205,7 +212,7 @@ function render(){
   if(me.drone&&playing){ctx.fillStyle='rgba(40,255,120,.07)';ctx.fillRect(0,0,W,H)}
   else if(!me.dead&&playing){
     const a=clamp((cfg.fov-fov)/(cfg.fov-(curGun().zoom||.55)),0,1);
-    drawGun(me.guns[gun],a);
+    if(!window.modelsReady)drawGun(me.guns[gun],a);
     if(muzzle>0){ctx.fillStyle='rgba(255,220,150,.06)';ctx.fillRect(0,0,W,H)}
     ctx.fillStyle='#fff';
     if(a<.5){const g=4+moving*4+Math.max(0,fireT)*20|0;ctx.fillRect(W/2-g-4,H/2,4,1);ctx.fillRect(W/2+g+1,H/2,4,1);ctx.fillRect(W/2,H/2-g-4,1,4);ctx.fillRect(W/2,H/2+g+1,1,4)}

@@ -1,8 +1,9 @@
 'use strict';
-// World simulation that every client runs the same way: wall destruction, hatches, ray tests, bullets, grenades, traps.
-// Particles are cosmetic only.
-const pcol=(r,g,b)=>0xff000000|rgb(r,g,b);
-const PLASTER=pcol(205,190,160),WOOD=pcol(150,105,58),METAL=pcol(110,116,128),SPARK=pcol(255,220,110),BLOOD=pcol(170,20,20),SOOT=pcol(24,24,26);
+// World simulation that every client runs the same way: wall and floor destruction, hatches, ray tests through the
+// storeys, bullets, grenades, traps. Particles are cosmetic only.
+// Positions are (x, y, z): y carries the storey (see core.js), z is the height inside that storey, 0..1.
+const eyeOf=(e,zz)=>{let z=e.h+(zz===undefined?e.z:zz),y=e.y;if(z>=1){z-=1;y+=FH}return [y,z]};   // an entity's eye: on the upper half of a flight of stairs it is already in the storey above
+const absZ=(y,z)=>floorOf(y)+z;
 
 // ---------- particles ----------
 const parts=[];
@@ -18,7 +19,11 @@ function updParts(dt){
     if((p.life-=dt)<=0){parts.splice(i,1);continue}
     if(!p.grav)continue;                         // decals just sit there
     p.vz-=3*p.grav*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
-    if(p.z<.01){p.z=.01;p.vz*=-.3;p.vx*=.5;p.vy*=.5}
+    if(p.z<.01){
+      const c=(p.y|0)*MW+(p.x|0);
+      if(p.y>=FH&&(nofloor[c]||hatch[c]===3)){p.y-=FH;p.z+=1}             // debris drops through openings
+      else{p.z=.01;p.vz*=-.3;p.vx*=.5;p.vy*=.5}
+    }
   }
 }
 
@@ -40,17 +45,32 @@ function punch(c,ui,vi,r,net){
     if(!(holes[i]&bit)){holes[i]|=bit;add++}
   }
   holeN[c]+=r>4&&g!==SOFT?Math.max(add,90):add;   // melee always counts on boards: 3 hits break a door, 2 a window
-  if(add){const p=wallPoint(c,ui,vi);spawnP(p[0],p[1],p[2],Math.min(10,2+add>>2),g===SOFT?PLASTER:WOOD,1.6,.7,1)}
+  if(add){const p=wallPoint(c,ui,vi);spawnP(p[0],p[1],p[2],Math.min(10,2+add>>2),g===SOFT?PLASTER:WOOD,1.6,.7,1);dirtyM.add(c)}
   if(net)send({t:'h',c,u:ui,v:vi,r});
   if(holeN[c]>(g===SOFT?400:g===DOOR?260:170))destroy(c);       // too many holes -> the panel falls (peers derive the same)
+}
+function punchFloor(c,ui,vi,r,net){              // c: the cell whose floor it is; shot or blasted from either side
+  if(!softF[c]||hatch[c])return;
+  let add=0;
+  for(let a=-r;a<=r;a++)for(let b=-r;b<=r;b++){
+    const u=ui+a,v=vi+b;
+    if(a*a+b*b>r*r+r||u<0||u>=TEX||v<0||v>=TEX||u%16===0)continue;      // joists survive
+    const i=c*TEX+u,bit=1<<v;
+    if(!(fholes[i]&bit)){fholes[i]|=bit;add++}
+  }
+  if(add){
+    const x=c%MW+(ui+.5)/TEX,y=(c/MW|0)+(vi+.5)/TEX;
+    spawnP(x,y,.03,Math.min(6,1+add>>2),WOOD,1.4,.6,1);spawnP(x,y-FH,.96,Math.min(8,2+add>>2),WOOD,1,.9,1);dirtyM.add(NC+c);
+  }
+  if(net)send({t:'fh',c,u:ui,v:vi,r});
 }
 function destroy(c,hard){                        // hard: also takes out a reinforced panel (thermal charge)
   const g=grid[c];
   if(g===WIN){                                   // a window loses its boards but keeps frame and sill
     if(holeN[c]>9000)return;
     for(let u=0;u<TEX;u++)holes[c*TEX+u]|=WMID;
-    holeN[c]=9999;
-  }else if(g===SOFT||g===DOOR||hard&&g===RTHIN)grid[c]=0;
+    holeN[c]=9999;dirtyM.add(c);
+  }else if(g===SOFT||g===DOOR||hard&&g===RTHIN){grid[c]=0;geoDirty=1}
   else return;
   if(charge===c)charge=-1;
   const x=c%MW+.5,y=(c/MW|0)+.5;
@@ -58,29 +78,30 @@ function destroy(c,hard){                        // hard: also takes out a reinf
 }
 function reinforce(c,net){
   if(grid[c]!==SOFT)return;
-  grid[c]=RTHIN;holes.fill(0,c*TEX,c*TEX+TEX);holeN[c]=0;if(charge===c)charge=-1;
+  grid[c]=RTHIN;holes.fill(0,c*TEX,c*TEX+TEX);holeN[c]=0;geoDirty=1;dirtyM.add(c);if(charge===c)charge=-1;
   sfx.steel(c%MW+.5,(c/MW|0)+.5);if(net)send({t:'rf',c});
 }
 function barricade(c,net){                       // board up an open doorway again
   if(orig[c]!==DOOR||grid[c])return;
-  grid[c]=DOOR;holes.fill(0,c*TEX,c*TEX+TEX);holeN[c]=0;
+  grid[c]=DOOR;holes.fill(0,c*TEX,c*TEX+TEX);holeN[c]=0;geoDirty=1;dirtyM.add(c);
   sfx.thud(c%MW+.5,(c/MW|0)+.5);if(net)send({t:'bd',c});
 }
+const near3=(e,x,y,z)=>Math.hypot(e.x-x,fold(e.y)-fold(y),absZ(e.y,e.h+e.z*.5)-absZ(y,z));   // distance from an entity's middle to a point, across storeys
 function explode(c,net,th){                      // breach charge on wall cell c
   if(net)send({t:'b',c,th:th?1:0});
   destroy(c,th);
   const x=c%MW+.5,y=(c/MW|0)+.5;
   sfx.boom(x,y,1);spawnP(x,y,.5,30,SOOT,4,.9,1,2);spawnP(x,y,.5,12,SPARK,5,.35,1);
-  if(Math.hypot(cam.x-x,cam.y-y)<9)boomT=.5;
-  if(Math.hypot(me.x-x,me.y-y)<1.8)hurt(60,'폭발',{x,y});
-  for(const b of hostBots())if(Math.hypot(b.x-x,b.y-y)<1.8)botHurt(b,60,{name:'폭발'});
+  if(near3(me,x,y,.5)<9)boomT=.5;
+  if(near3(me,x,y,.5)<1.8)hurt(60,'폭발',{x,y});
+  for(const b of hostBots())if(near3(b,x,y,.5)<1.8)botHurt(b,60,{name:'폭발'});
   blastHatches(x,y,1.3);
 }
 
-// ---------- floor hatches (cells on the upper floor; an open one drops you to the floor below) ----------
+// ---------- floor hatches (a cell of an upper storey; open, it is a hole you drop through) ----------
 function openHatch(c,net){
   if(hatch[c]!==1&&hatch[c]!==2)return;
-  hatch[c]=3;
+  hatch[c]=3;geoDirty=1;
   const x=c%MW+.5,y=(c/MW|0)+.5;
   spawnP(x,y,.05,16,WOOD,2.5,.9,1,2);spawnP(x,y-FH,.95,20,WOOD,2,1.2,1,2);sfx.crash(x,y);
   if(net)send({t:'hx',c});
@@ -91,7 +112,7 @@ function hitHatch(c,net){                        // melee: the third hit breaks 
   if(net)send({t:'hm',c});
   if(++holeN[c]>=3)openHatch(c);
 }
-function blastHatches(x,y,r){                    // a blast opens plain hatches on its own floor and the one right overhead
+function blastHatches(x,y,r){                    // a blast opens plain hatches in its own floor and in the ceiling overhead
   const cx=x|0,cy=y|0;
   for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
     const q=(cy+j)*MW+cx+i;
@@ -100,13 +121,13 @@ function blastHatches(x,y,r){                    // a blast opens plain hatches 
 }
 
 // ---------- rays ----------
-// Ray through the map in 2.5D (z = height 0..1, slope = dz per unit distance). Returns distance travelled.
-// hole>=0: bullet, punches soft walls and keeps going (max 3). hole=-1: sight check, stops at the first solid texel.
+// trace: a ray from (ox,oy,oz) along the unit direction (dx,dy), climbing `slope` per unit distance. Returns how far it got.
+// It runs storey by storey: walls inside a storey (seg), then the floor or ceiling it reaches, which it passes if that
+// panel is missing, open, already holed there, or — for bullets — timber.
+// hole>=0: bullet, punches soft panels and keeps going (three at most). hole=-1: sight check, stops at the first solid texel.
 // hole=-2: reach check for hands (melee, gadgets), stops at any thin wall even where it is already holed.
 let hitC=-1,hitU=0,hitV=0;const pens=[];
-function trace(ox,oy,oz,dx,dy,slope,maxD,hole){
-  dx=dx||1e-9;dy=dy||1e-9;hitC=-1;pens.length=0;
-  if(slope)maxD=Math.min(maxD,slope<0?-oz/slope:(1-oz)/slope);        // floor / ceiling
+function seg(ox,oy,oz,dx,dy,slope,lim,hole,base){
   let mx=ox|0,my=oy|0,t=0;
   const ddx=Math.abs(1/dx),ddy=Math.abs(1/dy),sx=dx<0?-1:1,sy=dy<0?-1:1;
   let sdx=(dx<0?ox-mx:mx+1-ox)*ddx,sdy=(dy<0?oy-my:my+1-oy)*ddy;
@@ -116,47 +137,70 @@ function trace(ox,oy,oz,dx,dy,slope,maxD,hole){
       let tt,u;
       if(orient[c]){tt=(my+.5-oy)/dy;u=ox+dx*tt-mx}else{tt=(mx+.5-ox)/dx;u=oy+dy*tt-my}
       if(tt>0&&u>=0&&u<1){
-        if(tt>maxD)return maxD;
-        const ui=u*TEX|0,vi=Math.min(TEX-1,(1-oz-slope*tt)*TEX|0),open=holes[c*TEX+ui]>>>vi&1;
+        if(tt>lim)return lim;
+        const ui=u*TEX|0,vi=clamp((1-oz-slope*tt)*TEX|0,0,TEX-1),open=holes[c*TEX+ui]>>>vi&1;
         if(hole===-2||!open){
           hitC=c;hitU=ui;hitV=vi;
           if(hole<0||g===RTHIN)return tt;
           punch(c,ui,vi,hole,1);
           if(grid[c]&&!(holes[c*TEX+ui]>>>vi&1))return tt;     // stud, sill or lintel: the bullet stops
-          pens.push(tt);
+          pens.push(base+tt);
           if(pens.length>2)return tt;
         }
       }
     }else if(g&&i)return t;
     if(sdx<sdy){t=sdx;sdx+=ddx;mx+=sx}else{t=sdy;sdy+=ddy;my+=sy}
-    if(t>maxD)return maxD;
+    if(t>lim)return lim;
   }
-  return maxD;
+  return lim;
 }
-function los(x0,y0,z0,x1,y1,z1){
-  const dx=x1-x0,dy=y1-y0,d=Math.hypot(dx,dy);
-  return d<.05||trace(x0,y0,z0,dx/d,dy/d,(z1-z0)/d,d,-1)>=d-.02;
+function floorOpen(c,x,y,hole,dist){             // can a ray at (x,y) get past the floor of cell c?
+  if(nofloor[c]||hatch[c]===3)return 1;
+  if(hatch[c]||!softF[c]||grid[c]&&grid[c]<SOFT)return 0;
+  const ui=(x-(x|0))*TEX|0,vi=(y-(y|0))*TEX|0,i=c*TEX+ui,bit=1<<vi;
+  if(fholes[i]&bit)return 1;
+  if(hole<0)return 0;
+  punchFloor(c,ui,vi,Math.max(hole,1),1);
+  if(!(fholes[i]&bit))return 0;                  // a joist
+  pens.push(dist);return pens.length<4;
 }
+function trace(ox,oy,oz,dx,dy,slope,maxD,hole){
+  dx=dx||1e-9;dy=dy||1e-9;hitC=-1;pens.length=0;
+  let base=0;
+  for(let k=0;k<=NL;k++){
+    const tv=slope?(slope<0?-oz/slope:(1-oz)/slope):1e9,lim=Math.min(maxD-base,tv),d=seg(ox,oy,oz,dx,dy,slope,lim,hole,base);
+    if(d<lim-1e-9||tv>=maxD-base)return Math.min(maxD,base+d);
+    const x=ox+dx*tv,y=oy+dy*tv,down=slope<0,f=floorOf(y);
+    if(down?!f:f===NL-1)return down||zone[(y|0)*MW+(x|0)]?base+tv:maxD;     // the ground, a roof, or off into the sky
+    if(!floorOpen(((down?y:y+FH)|0)*MW+(x|0),x,y,hole,base+tv))return base+tv;   // the panel in the way belongs to the upper storey
+    ox=x;oy=down?y-FH:y+FH;oz=down?1-1e-6:1e-6;base+=tv;
+  }
+  return base;
+}
+function los(x0,y0,z0,x1,y1,z1){                 // z: height inside each point's own storey
+  const dx=x1-x0,dy=fold(y1)-fold(y0),d=Math.max(.05,Math.hypot(dx,dy));
+  return trace(x0,y0,z0,dx/d,dy/d,(absZ(y1,z1)-absZ(y0,z0))/d,d,-1)>=d-.02;
+}
+const sees=(x,y,z,e)=>{const [ey,ez]=eyeOf(e);return los(x,y,z,e.x,ey,ez)};   // is entity e's head visible from that point?
 // One bullet from `by` (me, or a bot the host is driving). Only the shooter's machine runs this.
 function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg){
-  const dx=Math.cos(a),dy=Math.sin(a),stop=trace(ox,oy,oz,dx,dy,slope,40,hole);
+  const dx=Math.cos(a),dy=Math.sin(a),stop=trace(ox,oy,oz,dx,dy,slope,40,hole),oa=absZ(oy,oz),ol=fold(oy);
   let best,bd=stop,bz;
   for(const t of enemiesOf(by.team)){
     if(t.dead||t.z<.05)continue;
-    const rx=(t===me?cam.x:t.x)-ox,ry=(t===me?cam.y:t.y)-oy,al=rx*dx+ry*dy;
+    const rx=t.x-ox,ry=fold(t.y)-ol,al=rx*dx+ry*dy;
     if(al<=0||al>=bd||Math.abs(rx*dy-ry*dx)>.22)continue;
-    const z=oz+slope*al;if(z<0||z>t.z+.12)continue;
+    const z=oa+slope*al-absZ(t.y,t.h);            // how high above the target's feet the shot passes
+    if(z<0||z>t.z+.12)continue;
     best=t;bd=al;bz=z;
   }
+  const at=d=>{const za=clamp(oa+slope*d,.02,NL-.02),f=za|0;return [ox+dx*d,ol+dy*d+f*FH,za-f]};   // the point d along the ray
   if(!best){
-    if(stop<40){                                 // sparks and a scorch mark where it stopped
-      const x=ox+dx*(stop-.04),y=oy+dy*(stop-.04),z=clamp(oz+slope*stop,.02,.98);
-      spawnP(x,y,z,3,SPARK,2,.2,1);spawnP(x,y,z,1,SOOT,0,25,0);
-    }
+    if(stop<40){const p=at(stop-.04);spawnP(p[0],p[1],p[2],3,SPARK,2,.2,1);spawnP(p[0],p[1],p[2],1,SOOT,0,25,0)}   // sparks and a scorch mark
     return;
   }
-  let k=1;for(const q of pens)if(q<bd)k*=.7;     // each wall penetrated costs damage
-  spawnP(ox+dx*bd,oy+dy*bd,bz,5,BLOOD,1.5,.5,1);
+  let k=1;for(const q of pens)if(q<bd)k*=.7;     // each panel penetrated costs damage
+  const p=at(bd);spawnP(p[0],p[1],p[2],5,BLOOD,1.5,.5,1);
   if(by!==me)return hitBy(by,best,dmg*k);
   const hs=bz>best.z-.08;
   hitFoe(best,(hs?hsDmg:dmg)*k,hs);
@@ -172,8 +216,9 @@ function nadeSolid(x,y,z){                       // blocking cell at this point,
   if(g<SOFT)return c;
   const o=orient[c];
   if(Math.abs(o?y-cy-.5:x-cx-.5)>.1)return -1;
-  return holes[c*TEX+((o?x-cx:y-cy)*TEX|0)]>>>Math.min(TEX-1,(1-z)*TEX|0)&1?-1:c;
+  return holes[c*TEX+((o?x-cx:y-cy)*TEX|0)]>>>clamp((1-z)*TEX|0,0,TEX-1)&1?-1:c;
 }
+const gap=c=>nofloor[c]||hatch[c]===3;            // no floor to land on in this cell
 function updNades(dt){
   for(let i=nades.length;i--;){
     const n=nades[i];let hit=-1;
@@ -181,13 +226,14 @@ function updNades(dt){
       n.vz-=3.2*h;
       let c=nadeSolid(n.x+n.vx*h,n.y,n.z);if(c>=0){n.vx*=-.4;hit=c}else n.x+=n.vx*h;
       c=nadeSolid(n.x,n.y+n.vy*h,n.z);if(c>=0){n.vy*=-.4;hit=c}else n.y+=n.vy*h;
-      n.z+=n.vz*h;
+      n.z+=n.vz*h;c=(n.y|0)*MW+(n.x|0);
       if(n.z<.04){
-        if(n.y>=FH&&hatch[(n.y|0)*MW+(n.x|0)]===3){n.y-=FH;n.z=.94;continue}     // rolled into an open hatch: falls to the floor below
-        if(n.vz<-.4||NADE[n.k].hit)hit=-2;                                       // -2: bounced on the floor
-        n.z=.04;n.vz*=-.4;n.vx*=.7;n.vy*=.7;
+        if(n.y>=FH&&gap(c)){n.y-=FH;n.z+=1}                                    // falls to the storey below
+        else{if(n.vz<-.4||NADE[n.k].hit)hit=-2;n.z=.04;n.vz*=-.4;n.vx*=.7;n.vy*=.7}   // -2: bounced on the floor
+      }else if(n.z>.96){
+        if(n.y<(NL-1)*FH){if(gap(c+OFFC)){n.y+=FH;n.z-=1}else{n.z=.96;n.vz*=-.4}}     // up through an opening, or off the ceiling
+        else if(zone[c]){n.z=.96;n.vz*=-.4}                                    // top storey: a roof indoors, open sky outdoors
       }
-      if(n.z>.96){n.z=.96;n.vz*=-.4}
     }
     n.fuse-=dt;
     if(hit!==-1&&!n.hush){sfx.clink(n.x,n.y);n.hush=.15}
@@ -201,38 +247,39 @@ function updNades(dt){
   for(let i=smokes.length;i--;)if((smokes[i].t-=dt)<=0)smokes.splice(i,1);
 }
 function nadeBoom(k,x,y,z,c,own){
-  const d=Math.hypot(me.x-x,me.y-y),mine=own===me,foe=own.team!==me.team,bz=clamp(z,.1,.9);
+  const bz=clamp(z,.1,.9),d=near3(me,x,y,bz),mine=own===me,foe=own.team!==me.team;
   if(k==='smoke'){
     smokes.push({x,y,t:14,p:Array.from({length:6},()=>[rnd(1.7),rnd(1.7),.2+Math.random()*.5])});
     return sfx.hiss(x,y);
   }
   if(k==='flash'){
-    sfx.boom(x,y,0);spawnP(x,y,z,10,SPARK,3,.3,0);
-    if(!me.dead&&d<14&&los(x,y,bz,cam.x,cam.y,me.z)){          // looking at it hurts much more than looking away
-      const f=(1+Math.cos(Math.atan2(y-cam.y,x-cam.x)-cam.a))/2;
+    sfx.boom(x,y,0);spawnP(x,y,bz,10,SPARK,3,.3,0);
+    if(!me.dead&&d<14&&sees(x,y,bz,me)){                        // looking at it hurts much more than looking away
+      const f=(1+Math.cos(Math.atan2(fold(y)-fold(cam.y),x-cam.x)-cam.a))/2;
       flashT=Math.max(flashT,(1-d/14)*(.6+3.4*f*f));sfx.ring();
     }
-    for(const b of hostBots())if(Math.hypot(b.x-x,b.y-y)<7&&los(x,y,bz,b.x,b.y,.5))b.blind=2.5;
+    for(const b of hostBots())if(near3(b,x,y,bz)<7&&sees(x,y,bz,b))b.blind=2.5;
     return;
   }
   const big=k==='frag',R=big?3.4:1.7,D=big?130:55;
-  sfx.boom(x,y,big);spawnP(x,y,z,big?40:16,SOOT,4,.9,1,2);spawnP(x,y,z,big?16:8,SPARK,5,.35,1);
-  if(Math.hypot(cam.x-x,cam.y-y)<9)boomT=big?.5:.25;
-  if((mine||foe)&&d<R&&los(x,y,bz,cam.x,cam.y,me.z))hurt(D*(1-d/R),mine?'자폭':own.name,mine?{x,y}:own);
+  sfx.boom(x,y,big);spawnP(x,y,bz,big?40:16,SOOT,4,.9,1,2);spawnP(x,y,bz,big?16:8,SPARK,5,.35,1);
+  if(d<9)boomT=big?.5:.25;
+  if((mine||foe)&&d<R&&sees(x,y,bz,me))hurt(D*(1-d/R),mine?'자폭':own.name,mine?{x,y}:own);
   for(const b of hostBots()){                                   // the host answers for its bots (no friendly fire from grenades)
-    const l=Math.hypot(b.x-x,b.y-y);
-    if(b.team!==own.team&&l<R&&los(x,y,bz,b.x,b.y,.5))botHurt(b,D*(1-l/R),own);
+    const l=near3(b,x,y,bz);
+    if(b.team!==own.team&&l<R&&sees(x,y,bz,b))botHurt(b,D*(1-l/R),own);
   }
   noiseAt(x,y,30,-1);
-  // tear into thin walls and hatches around the blast: depends only on the reported position, so every client agrees
+  // tear into the walls, floor and hatches around the blast: depends only on the reported position, so every client agrees
   if(k==='impact'&&c>=0)destroy(c);
-  const r=big?1.3:.8,cx=x|0,cy=y|0;
+  const r=big?1.3:.8,cx=x|0,cy=y|0,fc=cy*MW+cx,fu=(x-cx)*TEX|0,fv=(y-cy)*TEX|0;
   for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
     const q=(cy+j)*MW+cx+i,g=grid[q];
     if(g!==SOFT&&g!==DOOR&&g!==WIN)continue;
     const o=orient[q],u=clamp(o?x-cx-i:y-cy-j,0,.999);
     if(Math.hypot(o?x-cx-i-u:x-cx-i-.5,o?y-cy-j-.5:y-cy-j-u)<r)punch(q,u*TEX|0,(1-bz)*TEX|0,big?9:6);
   }
+  if(bz<.5)punchFloor(fc,fu,fv,big?7:4);else if(fc+OFFC<NC)punchFloor(fc+OFFC,fu,fv,big?7:4);
   blastHatches(x,y,big?1.5:.9);
 }
 
@@ -242,5 +289,5 @@ function trapBoom(c){
   delete traps[c];
   const x=c%MW+.5,y=(c/MW|0)+.5;
   sfx.boom(x,y,0);spawnP(x,y,.3,14,SOOT,3,.7,1,2);spawnP(x,y,.3,8,SPARK,4,.3,1);
-  if(Math.hypot(me.x-x,me.y-y)<1.1)hurt(70,'함정',{x,y});
+  if(near3(me,x,y,.3)<1.1)hurt(70,'함정',{x,y});
 }
