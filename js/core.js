@@ -51,7 +51,10 @@ const spawns=[[],[],[],[]],roamSpots=[],camSpots=[],sites=[];
 const PROPK={T:1,C:2,F:3,E:4,W:5,P:6,V:7,S:8},PROPH=[0,.42,.5,.4,.32,.55,.42,.85,1],prop=new Uint8Array(NC);   // table, counter, sofa, bed, appliance, pool table, vehicle, shelf
 // Floor colour per cell: maps.js gives each room the colour its floor has on the blueprint; gfx.js turns each into textures.
 const FPAL=[],floorS=new Uint8Array(NC);
+const WPAL=[],wallS=new Uint8Array(NC);            // and the paint on its walls, the same way
 for(const r of ROOMS){
+  if(r[7]){const q=r[7].join();let i=WPAL.indexOf(q);if(i<0)i=WPAL.push(q)-1;
+    for(let y=r[2];y<=r[4];y++)for(let x=r[1];x<=r[3];x++){const c=(r[0]*FH+y)*MW+x;if(!wallS[c])wallS[c]=i+1}}
   if(!r[6])continue;
   const q=r[6].map(v=>Math.min(255,v*1.45+12|0)>>3<<3).join();let i=FPAL.indexOf(q);if(i<0)i=FPAL.push(q)-1;   // the plans are lit dimly: lift them
   for(let y=r[2];y<=r[4];y++)for(let x=r[1];x<=r[3];x++){const c=(r[0]*FH+y)*MW+x;if(!floorS[c])floorS[c]=i+1}

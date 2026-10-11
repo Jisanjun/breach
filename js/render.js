@@ -87,19 +87,24 @@ function buildGeo(){
   for(let c=0;c<NC;c++){
     const x=c%MW,Y=c/MW|0,f=floorOf(Y),z=fold(Y),g=grid[c],t=f+1,out=zone[c]===0;
     if(g===SKYW)continue;
-    const pk=prop[c],low=pk&&PROPH[pk]<1;
+    const pk=prop[c],low=pk&&PROPH[pk]<1,wl=(n,hard)=>wallS[n]?L_WS+2*wallS[n]-(hard?1:2):hard?HWALL:SOFT;   // wl: the wall texture facing cell n, in that room's paint
     if(cube(g)){
       const top=pk?f+PROPH[pk]:t,L=pk?L_PR+pk-1:g;
       for(const [dx,dz,lt] of [[0,-1,.8],[0,1,.8],[-1,0,1],[1,0,1]]){        // side faces that look onto open space
         const nx=x+dx,nz=z+dz,n=c+dx+dz*MW;
         if(nx<0||nx>=MW||nz<0||nz>=FH||cube(grid[n])&&(pk?prop[n]===pk||!prop[n]:!(prop[n]&&PROPH[prop[n]]<1)))continue;   // hidden behind a neighbour at least as tall
         const l=lt*(zone[n]?.92:1.12),a=dx?x+(dx>0):x,b=dz?z+(dz>0):z;
-        quad(dx?[a,top,z,a,top,z+1,a,f,z+1,a,f,z]:[x,top,b,x+1,top,b,x+1,f,b,x,f,b],UV,L,l,-1,0);
+        const Lf=pk||!zone[n]?L:g===BRICK?wl(n,0):g===HARD&&wallS[n]?wl(n,1):L;   // indoors, the outside wall and the posts wear the room's plaster
+        quad(dx?[a,top,z,a,top,z+1,a,f,z+1,a,f,z]:[x,top,b,x+1,top,b,x+1,f,b,x,f,b],UV,Lf,l,-1,0);
       }
       if(pk||f<NL-1&&!cube(grid[c+OFFC]))quad([x,top,z,x+1,top,z,x+1,top,z+1,x,top,z+1],UV,pk?L:g===BRICK?L_ROOF:g,1.05,-1,0);   // top, where nothing stands on it
       if(!low)continue;                                           // above low furniture the room carries on: floor and ceiling below
     }
-    if(g&&!pk)quad(orient[c]?[x,t,z+.5,x+1,t,z+.5,x+1,f,z+.5,x,f,z+.5]:[x+.5,t,z,x+.5,t,z+1,x+.5,f,z+1,x+.5,f,z],UV,g,.96,c,g===SOFT?1:0);   // thin wall panel
+    if(g&&!pk){                                                 // thin wall panel
+      const P=s=>orient[c]?[x,t,z+.5+s,x+1,t,z+.5+s,x+1,f,z+.5+s,x,f,z+.5+s]:[x+.5+s,t,z,x+.5+s,t,z+1,x+.5+s,f,z+1,x+.5+s,f,z];
+      if(g===SOFT||g===HWALL)for(const s of [-.006,.006])quad(P(s),UV,wl(c+(s<0?-1:1)*(orient[c]?MW:1),g===HWALL),.96,c,g===SOFT?1:0);   // one skin per side, in each room's paint
+      else quad(P(0),UV,g,.96,c,0);
+    }
     const d=ramp[c];
     if(d){                                                      // stairs: sloped top, two flanks, and a riser under the top step
       const lo=f+rampB[c],hi=lo+.5,hw=d>0?lo:hi,he=d>0?hi:lo;   // heights at the west/north and east/south edges

@@ -25,10 +25,10 @@ TEXL[L_HATCHR]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(30,32,38):u%8===4&&v%8===
 TEXL[L_STUD]=mkTex((u,v,n)=>rgb(120+n,84+n,48+n));              // timber shown where plaster or flooring next to a stud or joist is gone
 TEXL[HWALL]=mkTex((u,v,n)=>v>27?gray(70):v%14===0||(u+(v/14|0)*8)%16===0?gray(120):gray(168,n*.5));   // solid interior wall: painted blockwork, so it never reads as plaster
 TEXL[SHIELD]=mkTex((u,v,n)=>v<16||u<2||u>29?rgb(24,26,30):v<22&&u>8&&u<23?rgb(96,128,150):(u%10===5)&&v%6===1?rgb(150,150,158):rgb(58+n/2,64+n/2,74+n/2));   // deployable shield: only the lower part is ever shown
-// The outside of the building depends on the map: House has pale siding over a brick base with white trim between,
+// The outside of the building depends on the map: House has cream siding with white trim (as in footage of the real map),
 // Coastline is whitewashed and stands on stone paving instead of a lawn.
 const coast=MAPS[MAPID].skin==='coast';
-const outer=coast?(u,v,n)=>v>28?gray(168):gray(228,n*.45):(u,v,n)=>v<18?(v%4===3?rgb(168,158,138):rgb(208+n*.5,198+n*.5,174+n*.5)):v<20?rgb(240,238,232):brick(u,v,n);
+const outer=coast?(u,v,n)=>v>28?gray(168):gray(228,n*.45):(u,v,n)=>v>27?gray(120,n):v>25?rgb(240,238,232):v%4===3?rgb(162,160,128):rgb(198+n*.5,196+n*.5,160+n*.5);   // cream siding, white trim, a stone plinth
 TEXL[BRICK]=mkTex(outer);
 TEXL[WIN]=mkTex((u,v,n)=>v===5||v===20||v>5&&v<20&&(u<2||u>29)?rgb(244,244,240):v<6||v>19?outer(u,v,n):(v-6)%5===0?rgb(58,38,22):plank(u,v,n));   // boards in a white frame
 if(coast)TEXL[L_GRASS]=mkTex((u,v,n)=>u%16===0||v%16===0?rgb(150,140,124):rgb(198+n,188+n,168+n));
@@ -47,11 +47,19 @@ TEXL[L_ROOF]=mkTex((u,v,n)=>v%6===0||(u+(v/6|0)*5)%10===0?gray(40):gray(72,n*.6)
 // Floors: two textures per floor colour of this map (core.js FPAL, sampled from the blueprint). Boards mean bullets go
 // through; the solid version is tiles where the plan is pale and grey, carpet or screed otherwise.
 FPAL.forEach((q,i)=>{
-  const [r,g,b]=q.split(',').map(Number),pale=Math.max(r,g,b)-Math.min(r,g,b)<30&&r+g+b>330;
-  TEXL[L_FS+2*i]=mkTex((u,v,n)=>v%8===0||(u+(v>>3)*11)%32===0?rgb(r*.55,g*.55,b*.55):rgb(r+n,g+n,b+n));
+  const [r,g,b]=q.split(',').map(Number),R=r*.4+106,G=g*.4+77,B=b*.4+44,pale=Math.max(r,g,b)-Math.min(r,g,b)<30&&r+g+b>330;
+  TEXL[L_FS+2*i]=mkTex((u,v,n)=>v%8===0||(u+(v>>3)*11)%32===0?rgb(R*.55,G*.55,B*.55):rgb(R+n,G+n,B+n));
   TEXL[L_FS+2*i+1]=mkTex(pale?(u,v,n)=>u%16===0||v%16===0?rgb(r*.72,g*.72,b*.72):rgb(r+n*.5,g+n*.5,b+n*.5):(u,v,n)=>rgb(r+n*1.4,g+n*1.4,b+n*1.4));
 });
-const NTEX=L_FS+2*FPAL.length;
+// Walls: two textures per paint colour of this map (core.js WPAL). Smooth plaster is the breakable wall, the same paint over
+// blockwork is the solid one; both get white skirting and a white rail under the ceiling.
+const L_WS=L_FS+2*FPAL.length;
+WPAL.forEach((q,i)=>{
+  const [r,g,b]=q.split(',').map(Number),trim=(v,f)=>v>27||v<2?rgb(240,238,232):v===27?rgb(r*.6,g*.6,b*.6):f;
+  TEXL[L_WS+2*i]=mkTex((u,v,n)=>trim(v,rgb(r+n*.5,g+n*.5,b+n*.5)));
+  TEXL[L_WS+2*i+1]=mkTex((u,v,n)=>trim(v,v%13===0||(u+(v/13|0)*8)%16===0?rgb(r*.74,g*.74,b*.74):rgb(r*.92+n*.4,g*.92+n*.4,b*.92+n*.4)));
+});
+const NTEX=L_WS+2*WPAL.length;
 
 // ---------- sprites (64x64 array layers; the picture sits in the top-left w x h) ----------
 const SW=20,SH=36,SPRL=[];
