@@ -135,6 +135,9 @@ function selfTest(){
   loadMap();hatch[hc]=2;blastHatches(16.5,G+8.5,1.3);ok(hatch[hc]===2,'reinforced hatch survives a blast from below');
   hatch[hc]=1;blastHatches(16.5,G+8.5,1.3);ok(hatch[hc]===3,'plain hatch is blown open from below');
   for(const k in flows)delete flows[k];
+  const sides=()=>(fillBots(),[0,1].map(t=>roster.filter(p=>p.team===t).length).join());
+  roster=[{id:0,team:0}];fillTo=6;ok(sides()==='1,5','1 v 5: bots only on the side with no humans');
+  fillTo=5;ok(sides()==='5,5','bots fill both sides');fillTo=0;roster=[];
   Object.assign(me,{x:16.5,y:G+2.5,h:0,vz:0});
   loadMap();console.log('selfTest done');
 }

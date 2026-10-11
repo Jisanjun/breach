@@ -53,10 +53,11 @@ for(const [id,key,lo,hi] of [['sSens','sens',.2,3],['sVol','vol',0,1],['sFov','f
   e.oninput=()=>{cfg[key]=clamp(+e.value,lo,hi);saveCfg();if(master)master.gain.value=cfg.vol};
 }
 $('bSolo').onclick=()=>{startOffline();lockPointer()};
+$('bAlone').onclick=()=>{startOffline(1);lockPointer()};
 $('bHost').onclick=host;$('bJoin').onclick=join;
 $('bStart').onclick=()=>{$('res').textContent='';startRound();lockPointer()};
 $('bTeam').onclick=()=>request({t:'team'});
-$('fill').onchange=()=>{fillTo=clamp($('fill').value|0,0,5);if(isHost&&phase==='lobby')syncLobby()};
+$('fill').onchange=()=>{fillTo=clamp($('fill').value|0,0,6);if(isHost&&phase==='lobby')syncLobby()};
 $('bCopy').onclick=()=>navigator.clipboard.writeText($('link').value).then(()=>{$('bCopy').textContent='복사됨';setTimeout(()=>$('bCopy').textContent='초대 링크 복사',1500)});
 $('bResume').onclick=lockPointer;
 $('bLeave').onclick=()=>{location.href=location.href.split(/[?#]/)[0]};
@@ -77,6 +78,7 @@ addEventListener('keydown',e=>{
     case 'KeyZ':doPing();break;
     case 'Digit1':case 'Digit2':swapGun(+e.code[5]-1);break;
     case 'KeyX':swapGun(1-gun);break;
+    case 'Enter':if(isHost&&phase==='prep')phaseEnd=0;break;       // host skips the rest of prep; hostTick announces the phase change
     case 'KeyO':if(phase==='prep'&&!me.dead)pickOp(side(),(cfg.ops[side()]+1)%OPS[side()].length);break;   // switch operator while still in prep
   }
 });
@@ -124,7 +126,7 @@ function hud(){
   else if(me.dead){const sp=viewTarget();m=(deathMsg?deathMsg+'\n':'')+(sp?'관전: '+sp.name+' (클릭: 다음 팀원)':'다음 라운드 대기')}
   else if(!locked())m='화면을 클릭하면 조작 시작';
   else if(holdT>0){m=isAtk()?'디퓨저 설치 중':'디퓨저 해제 중';prog=holdT/5}
-  else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경';
+  else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경'+(isHost?' · [Enter] 준비 건너뛰기':'');
   else if(charge>=0)m='[G] 폭약 기폭';
   else if(isAtk()&&!defuser&&inSite(me.x,me.y))m='목표 구역 — [F] 꾹 눌러 디퓨저 설치';
   else if(!isAtk()&&defuser&&near3(me,defuser.x,defuser.y,.2)<1.3)m='[F] 꾹 눌러 디퓨저 해제';

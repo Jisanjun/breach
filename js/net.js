@@ -140,7 +140,10 @@ function hostReq(m,id){
 }
 function fillBots(){                             // top each team up to fillTo with bots (ids 100+team*10+n); humans push bots out
   roster=roster.filter(p=>!p.bot);
-  for(const t of [0,1])for(let n=roster.filter(p=>p.team===t).length,i=0;n<fillTo;n++,i++)roster.push({id:100+t*10+i,name:BOTN[t][i],team:t,bot:1});
+  for(const t of [0,1]){
+    const h=roster.filter(p=>p.team===t).length,to=fillTo>5?(h?0:5):fillTo;   // 6: five bots on a side that has no humans, none elsewhere (1 v 5)
+    for(let n=h,i=0;n<to;n++,i++)roster.push({id:100+t*10+i,name:BOTN[t][i],team:t,bot:1});
+  }
   for(const id in snap)if(!roster.some(p=>p.id===+id))delete snap[id];
 }
 function syncLobby(){
@@ -238,5 +241,5 @@ function drawLobby(){
     for(const p of roster)if(p.team===t){const li=document.createElement('li');li.textContent=p.name+(p.bot?' (봇)':'')+(p.id===me.id?' (나)':'')+(p.id===0?' ★':'');ul.append(li)}
   }
   $('bStart').hidden=$('fillRow').hidden=!isHost;$('linkRow').hidden=!!offline;$('fill').value=fillTo;
-  $('wait').textContent=isHost?(offline?'혼자 연습: 봇이 양 팀을 채운다. 4라운드 선승.':'링크를 공유하고, 다 모이면 시작. 라운드마다 공수 교대, 4라운드 선승.'):'호스트가 시작하면 게임이 열립니다.';
+  $('wait').textContent=isHost?(offline?'혼자 연습: 빈 자리는 봇이 채운다. 4라운드 선승.':'링크를 공유하고, 다 모이면 시작. 라운드마다 공수 교대, 4라운드 선승.'):'호스트가 시작하면 게임이 열립니다.';
 }

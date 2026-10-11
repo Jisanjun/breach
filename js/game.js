@@ -260,7 +260,7 @@ function newRound(s,g){
 }
 const atkSpawn=i=>spawns[spawnGrp][i%5];
 function defSpawn(i){const cs=sites[site].cells,c=cs[(1+i*3)%cs.length];return [c%MW+.5,(c/MW|0)+.5]}   // spread through the objective room
-function startOffline(){                         // solo practice: a local match, bots fill both teams
-  offline=1;isHost=1;mode='mp';me.id=0;me.name=myName();fillTo=5;score=[0,0];atkTeam=0;
+function startOffline(alone){                    // solo practice: a local match, bots fill both teams — or only the other one
+  offline=1;isHost=1;mode='mp';me.id=0;me.name=myName();fillTo=alone?6:5;score=[0,0];atkTeam=0;
   roster=[{id:0,name:me.name,team:0}];syncLobby();startRound();
 }

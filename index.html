@@ -87,6 +87,7 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
       <button id="bJoin" hidden>방 참가</button>
       <button id="bHost">방 만들기 (5v5)</button>
       <button id="bSolo" class="alt">혼자 연습 (봇과 5대5)</button>
+      <button id="bAlone" class="alt">혼자 1대5 (적팀만 봇)</button>
     </div>
   </div>
   <div id="lobby" hidden>
@@ -97,7 +98,7 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
       <div><b class="c1">오렌지</b><ul id="t1"></ul></div>
     </div>
     <div class="row"><button id="bStart" hidden>매치 시작</button><button id="bTeam" class="alt">팀 바꾸기</button>
-      <label id="fillRow" hidden>빈 자리 봇 <select id="fill"><option value="0">없음</option><option value="2">2대2까지</option><option value="3">3대3까지</option><option value="4">4대4까지</option><option value="5">5대5까지</option></select></label></div>
+      <label id="fillRow" hidden>빈 자리 봇 <select id="fill"><option value="0">없음</option><option value="2">2대2까지</option><option value="3">3대3까지</option><option value="4">4대4까지</option><option value="5">5대5까지</option><option value="6">사람 없는 팀만 5명</option></select></label></div>
     <div id="wait"></div>
   </div>
   <div id="pause" hidden>
@@ -121,7 +122,7 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 
 공격: 바닥이 붉은 방에 디퓨저를 설치하고 35초 지키거나, 방어팀 전멸
 방어: 3분 버티기, 공격팀 전멸, 또는 설치된 디퓨저 해제
-준비 단계: 공격팀은 드론 정찰, 방어팀은 벽·해치 보강. 4라운드 선승
+준비 단계: 공격팀은 드론 정찰, 방어팀은 벽·해치 보강. 방장은 Enter 로 건너뛴다. 4라운드 선승
 
 맵은 3층 주택(지하·1층·2층). 계단은 걸어서 오르내리고, 마당 북쪽 진입로로 내려가면 차고 문, 동쪽 계단은 2층 발코니
 나무 바닥은 총알이 뚫는다: 위층에서 아래로, 아래층에서 천장으로 쏠 수 있고 구멍으로 내려다볼 수 있다 (장선은 남음)
@@ -135,7 +136,7 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'5.0';
+const V=location.hostname==='localhost'?Date.now():'5.1';
 for(const f of ['core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>
