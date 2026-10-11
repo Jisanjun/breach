@@ -2,7 +2,7 @@
 // floors: one array of row strings per storey (basement, ground, upper); see core.js for what the characters mean.
 // rooms: callouts [storey, x0, y0, x1, y1, name]. pit: a cell of the basement storey that is under the open sky, if any.
 const MAPS={};
-MAPS.house={name:"하우스",pit:[28, 10],floors:[[
+MAPS.house={name:"하우스",skin:"",pit:[28, 10],floors:[[
   '#####################################',
   '#####################################',
   '#####################################',
@@ -143,7 +143,7 @@ MAPS.house={name:"하우스",pit:[28, 10],floors:[[
   [2,16,21,21,26,'놀이방'],
   [2,23,21,24,24,'지붕']
 ]};
-MAPS.coast={name:"해안선",pit:null,floors:[[
+MAPS.coast={name:"해안선",skin:"coast",pit:null,floors:[[
   '####################################',
   '####################################',
   '####################################',

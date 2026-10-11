@@ -27,6 +27,12 @@ TEXL[L_HATCHR]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(30,32,38):u%8===4&&v%8===
 TEXL[L_STUD]=mkTex((u,v,n)=>rgb(120+n,84+n,48+n));              // timber shown where plaster or flooring next to a stud or joist is gone
 TEXL[HWALL]=mkTex((u,v,n)=>v>27?gray(70):v%14===0||(u+(v/14|0)*8)%16===0?gray(120):gray(168,n*.5));   // solid interior wall: painted blockwork, so it never reads as plaster
 TEXL[SHIELD]=mkTex((u,v,n)=>v<16||u<2||u>29?rgb(24,26,30):v<22&&u>8&&u<23?rgb(96,128,150):(u%10===5)&&v%6===1?rgb(150,150,158):rgb(58+n/2,64+n/2,74+n/2));   // deployable shield: only the lower part is ever shown
+if(MAPS[MAPID].skin==='coast'){                 // Coastline: whitewashed walls and stone paving instead of brick and lawn
+  const wash=(u,v,n)=>v>28?gray(168):gray(228,n*.45);
+  TEXL[BRICK]=mkTex(wash);
+  TEXL[WIN]=mkTex((u,v,n)=>v===5||v===20?rgb(120,112,104):v<6||v>19?wash(u,v,n):(v-6)%5===0?rgb(58,38,22):plank(u,v,n));
+  TEXL[L_GRASS]=mkTex((u,v,n)=>u%16===0||v%16===0?rgb(150,140,124):rgb(198+n,188+n,168+n));
+}
 const NTEX=21;
 
 // ---------- sprites (64x64 array layers; the picture sits in the top-left w x h) ----------
