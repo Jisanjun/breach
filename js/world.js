@@ -157,7 +157,7 @@ function seg(ox,oy,oz,dx,dy,slope,lim,hole,base){
           if(pens.length>2)return tt;
         }
       }
-    }else if(g&&i)return t;
+    }else if(g&&i&&!(prop[c]&&oz+slope*t>PROPH[prop[c]]))return t;   // a cube stops the ray, unless it is furniture and the ray clears it
     if(sdx<sdy){t=sdx;sdx+=ddx;mx+=sx}else{t=sdy;sdy+=ddy;my+=sy}
     if(t>lim)return lim;
   }
@@ -229,7 +229,7 @@ const nades=[],smokes=[];
 function nadeSolid(x,y,z){                       // blocking cell at this point, or -1
   const cx=x|0,cy=y|0,c=cy*MW+cx,g=grid[c];
   if(!g)return -1;
-  if(g<SOFT)return c;
+  if(g<SOFT)return prop[c]&&z>PROPH[prop[c]]?-1:c;   // over the furniture
   const o=orient[c];
   if(Math.abs(o?y-cy-.5:x-cx-.5)>.1)return -1;
   return holes[c*TEX+((o?x-cx:y-cy)*TEX|0)]>>>clamp((1-z)*TEX|0,0,TEX-1)&1?-1:c;

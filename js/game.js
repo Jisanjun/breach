@@ -205,7 +205,7 @@ function rapFace(c,dx,dy){const w=c+dx+dy*MW;return face(w)||face(w+OFFC)||ledge
 function spaceAct(){                             // what Space would do now: k 1 climb to cell t, 2 let go of the rope, 3 clip on
   const ca=Math.cos(me.a),sa=Math.sin(me.a),ax=Math.abs(ca)>Math.abs(sa);
   const dx=me.rap?me.rx:ax?Math.sign(ca):0,dy=me.rap?me.ry:ax?0:Math.sign(sa),c=(me.y|0)*MW+(me.x|0),w=c+dx+dy*MW;
-  const t=winOpen(w)||grid[w]===SHIELD?w+dx+dy*MW:me.rap&&nofloor[c]&&!grid[w]?w:-1;   // over a sill or a shield, or (off the rope) onto a ledge
+  const t=winOpen(w)||grid[w]===SHIELD||prop[w]&&PROPH[prop[w]]<.6?w+dx+dy*MW:me.rap&&nofloor[c]&&!grid[w]?w:-1;   // over a sill or a shield, or (off the rope) onto a ledge
   if(t>=0&&me.h<.5&&!grid[t]&&!nofloor[t])return {k:1,t};
   if(me.rap)return {k:!nofloor[c]&&me.h<.3?2:0};
   return {k:isAtk()&&phase==='act'&&zone[c]===0&&!nofloor[c]&&me.h<.1&&rapFace(c,dx,dy)?3:0,dx,dy};

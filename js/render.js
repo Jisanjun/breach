@@ -87,17 +87,19 @@ function buildGeo(){
   for(let c=0;c<NC;c++){
     const x=c%MW,Y=c/MW|0,f=floorOf(Y),z=fold(Y),g=grid[c],t=f+1,out=zone[c]===0;
     if(g===SKYW)continue;
+    const pk=prop[c],low=pk&&PROPH[pk]<1;
     if(cube(g)){
+      const top=pk?f+PROPH[pk]:t,L=pk?L_PR+pk-1:g;
       for(const [dx,dz,lt] of [[0,-1,.8],[0,1,.8],[-1,0,1],[1,0,1]]){        // side faces that look onto open space
         const nx=x+dx,nz=z+dz,n=c+dx+dz*MW;
-        if(nx<0||nx>=MW||nz<0||nz>=FH||cube(grid[n]))continue;
+        if(nx<0||nx>=MW||nz<0||nz>=FH||cube(grid[n])&&(pk?prop[n]===pk||!prop[n]:!(prop[n]&&PROPH[prop[n]]<1)))continue;   // hidden behind a neighbour at least as tall
         const l=lt*(zone[n]?.92:1.12),a=dx?x+(dx>0):x,b=dz?z+(dz>0):z;
-        quad(dx?[a,t,z,a,t,z+1,a,f,z+1,a,f,z]:[x,t,b,x+1,t,b,x+1,f,b,x,f,b],UV,g,l,-1,0);
+        quad(dx?[a,top,z,a,top,z+1,a,f,z+1,a,f,z]:[x,top,b,x+1,top,b,x+1,f,b,x,f,b],UV,L,l,-1,0);
       }
-      if(f<NL-1&&!cube(grid[c+OFFC]))quad([x,t,z,x+1,t,z,x+1,t,z+1,x,t,z+1],UV,g,1.05,-1,0);   // top, where nothing stands on it
-      continue;
+      if(pk||f<NL-1&&!cube(grid[c+OFFC]))quad([x,top,z,x+1,top,z,x+1,top,z+1,x,top,z+1],UV,pk?L:g===BRICK?L_ROOF:g,1.05,-1,0);   // top, where nothing stands on it
+      if(!low)continue;                                           // above low furniture the room carries on: floor and ceiling below
     }
-    if(g)quad(orient[c]?[x,t,z+.5,x+1,t,z+.5,x+1,f,z+.5,x,f,z+.5]:[x+.5,t,z,x+.5,t,z+1,x+.5,f,z+1,x+.5,f,z],UV,g,.96,c,g===SOFT?1:0);   // thin wall panel
+    if(g&&!pk)quad(orient[c]?[x,t,z+.5,x+1,t,z+.5,x+1,f,z+.5,x,f,z+.5]:[x+.5,t,z,x+.5,t,z+1,x+.5,f,z+1,x+.5,f,z],UV,g,.96,c,g===SOFT?1:0);   // thin wall panel
     const d=ramp[c];
     if(d){                                                      // stairs: sloped top, two flanks, and a riser under the top step
       const lo=f+rampB[c],hi=lo+.5,hw=d>0?lo:hi,he=d>0?hi:lo;   // heights at the west/north and east/south edges
@@ -111,7 +113,7 @@ function buildGeo(){
         if(rampB[c]){const zz=d>0?z+1:z;quad([x,hi,zz,x+1,hi,zz,x+1,f,zz,x,f,zz],UV,L_CONC,.9,-1,0)}
       }
     }else if(!nofloor[c]&&hatch[c]!==3){                        // floor
-      const hs=hatch[c],L=hs?hs===2?L_HATCHR:L_HATCH:out?f===1?L_GRASS:L_CONC:zone[c]===2+site?L_SITE:softF[c]?L_WOOD:L_CONC;   // timber exactly where bullets go through
+      const hs=hatch[c],L=hs?hs===2?L_HATCHR:L_HATCH:out?f===1?L_GRASS:L_CONC:zone[c]===2+site?L_SITE:floorS[c]?L_FS+2*floorS[c]-(softF[c]?2:1):softF[c]?L_WOOD:L_CONC;   // the room's own floor; boards exactly where bullets go through
       quad([x,f,z,x+1,f,z,x+1,f,z+1,x,f,z+1],UV,L,out?1.1:.92,softF[c]&&!hs?NC+c:-1,1);
     }
     const up=c+OFFC;                                            // ceiling: the underside of the floor above, or the roof

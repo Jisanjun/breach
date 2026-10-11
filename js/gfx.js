@@ -10,30 +10,48 @@ const plank=(u,v,n)=>rgb(160+n,114+n,64+n);
 const L_GRASS=10,L_WOOD=11,L_SITE=12,L_CONC=13,L_CEIL=14,L_STAIR=15,L_HATCH=16,L_HATCHR=17,L_STUD=18;
 const TEXL=[];
 TEXL[HARD]=mkTex((u,v,n)=>v%16===0||u%16===0?gray(72):(u%16===3||u%16===13)&&(v%16===3||v%16===13)?gray(90):gray(128,n*.7));
-TEXL[BRICK]=mkTex(brick);
 TEXL[STEEL]=TEXL[RTHIN]=mkTex((u,v,n)=>u%8===4&&v%8===4?rgb(160,160,170):v%16===0||u%16===0?rgb(30,32,38):v<4&&(u+v>>2)%2?rgb(210,170,30):rgb(64+n/2,70+n/2,82+n/2));
 TEXL[CRATE]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29||Math.abs(u-v)<2||Math.abs(u+v-31)<2?rgb(96,66,36):rgb(168+n,124+n,72+n));
-TEXL[SOFT]=mkTex((u,v,n)=>v>27?rgb(96,80,62):v===27?rgb(60,50,40):rgb(200+n*.6,186+n*.6,156+n*.6));
+TEXL[SOFT]=mkTex((u,v,n)=>v>27?rgb(238,236,230):v===27?rgb(150,144,132):rgb(224+n*.5,216+n*.5,198+n*.5));   // breakable wall: pale plaster over a white skirting board
 TEXL[DOOR]=mkTex((u,v,n)=>v%6===0?rgb(58,38,22):(u===3||u===28)&&v%6===3?rgb(40,40,44):plank(u,v,n));
-TEXL[WIN]=mkTex((u,v,n)=>v===5||v===20?rgb(120,112,104):v<6||v>19?brick(u,v,n):(v-6)%5===0?rgb(58,38,22):plank(u,v,n));
 TEXL[L_GRASS]=mkTex((u,v,n)=>(u*7+v*13)%11===0?rgb(66,90,46):rgb(84+n,106+n,60+n*.5));
 TEXL[L_WOOD]=mkTex((u,v,n)=>v%8===0||(u+(v>>3)*11)%32===0?rgb(70,50,34):rgb(128+n,94+n,62+n));
 TEXL[L_SITE]=mkTex((u,v,n)=>u<2||v<2?rgb(220,180,30):rgb(150+n,58+n*.4,50+n*.4));          // objective room: red with yellow lines
 TEXL[L_CONC]=mkTex((u,v,n)=>u===0||v===0?gray(84):gray(118,n*.6));
-TEXL[L_CEIL]=mkTex((u,v,n)=>u===0||v===0?gray(96):u>11&&u<20&&v>13&&v<18?rgb(250,250,235):gray(150,n*.4));   // tiles with a light
+TEXL[L_CEIL]=mkTex((u,v,n)=>u===0||v===0?gray(212):(u-16)**2+(v-16)**2<10?rgb(255,248,220):gray(232,n*.3));   // a plain white ceiling with a lamp
 TEXL[L_STAIR]=mkTex((u,v,n)=>u%8<2?rgb(40,40,44):v<2||v>29?rgb(230,190,40):rgb(120+n,120+n,126+n));   // treads run across the flight
 TEXL[L_HATCH]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(60,44,28):u===15||u===16?rgb(70,50,32):rgb(150+n,108+n,62+n));
 TEXL[L_HATCHR]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(30,32,38):u%8===4&&v%8===4?rgb(160,160,170):rgb(70+n/2,76+n/2,88+n/2));
 TEXL[L_STUD]=mkTex((u,v,n)=>rgb(120+n,84+n,48+n));              // timber shown where plaster or flooring next to a stud or joist is gone
 TEXL[HWALL]=mkTex((u,v,n)=>v>27?gray(70):v%14===0||(u+(v/14|0)*8)%16===0?gray(120):gray(168,n*.5));   // solid interior wall: painted blockwork, so it never reads as plaster
 TEXL[SHIELD]=mkTex((u,v,n)=>v<16||u<2||u>29?rgb(24,26,30):v<22&&u>8&&u<23?rgb(96,128,150):(u%10===5)&&v%6===1?rgb(150,150,158):rgb(58+n/2,64+n/2,74+n/2));   // deployable shield: only the lower part is ever shown
-if(MAPS[MAPID].skin==='coast'){                 // Coastline: whitewashed walls and stone paving instead of brick and lawn
-  const wash=(u,v,n)=>v>28?gray(168):gray(228,n*.45);
-  TEXL[BRICK]=mkTex(wash);
-  TEXL[WIN]=mkTex((u,v,n)=>v===5||v===20?rgb(120,112,104):v<6||v>19?wash(u,v,n):(v-6)%5===0?rgb(58,38,22):plank(u,v,n));
-  TEXL[L_GRASS]=mkTex((u,v,n)=>u%16===0||v%16===0?rgb(150,140,124):rgb(198+n,188+n,168+n));
-}
-const NTEX=21;
+// The outside of the building depends on the map: House has pale siding over a brick base with white trim between,
+// Coastline is whitewashed and stands on stone paving instead of a lawn.
+const coast=MAPS[MAPID].skin==='coast';
+const outer=coast?(u,v,n)=>v>28?gray(168):gray(228,n*.45):(u,v,n)=>v<18?(v%4===3?rgb(168,158,138):rgb(208+n*.5,198+n*.5,174+n*.5)):v<20?rgb(240,238,232):brick(u,v,n);
+TEXL[BRICK]=mkTex(outer);
+TEXL[WIN]=mkTex((u,v,n)=>v===5||v===20||v>5&&v<20&&(u<2||u>29)?rgb(244,244,240):v<6||v>19?outer(u,v,n):(v-6)%5===0?rgb(58,38,22):plank(u,v,n));   // boards in a white frame
+if(coast)TEXL[L_GRASS]=mkTex((u,v,n)=>u%16===0||v%16===0?rgb(150,140,124):rgb(198+n,188+n,168+n));
+// Furniture (core.js PROPK order): table, counter, sofa, bed, appliance, pool table, vehicle, shelf.
+const L_PR=21,L_ROOF=29,L_FS=30;
+[(u,v,n)=>u<2||u>29||v<2||v>29?rgb(78,52,30):rgb(132+n,92+n,54+n),
+ (u,v,n)=>v>26?gray(60):u%16===0?gray(170):gray(216,n*.4),
+ (u,v,n)=>u%16<1||v%16<1?rgb(52,60,72):rgb(92+n,104+n,120+n),
+ (u,v,n)=>u<10?rgb(232+n*.3,228+n*.3,220+n*.3):u<12?rgb(120,40,50):rgb(168+n,62+n,74+n),
+ (u,v,n)=>{const r=(u-16)**2+(v-16)**2;return r<36?rgb(40,48,60):r<64?gray(150):gray(234,n*.3)},
+ (u,v,n)=>u<3||u>28||v<3||v>28?rgb(84,54,30):rgb(34+n*.5,112+n,66+n*.5),
+ (u,v,n)=>v>27?gray(30):v>5&&v<14&&u%16>1?rgb(40,60,84):u%16===0?gray(150):gray(228,n*.3),
+ (u,v,n)=>v%8===0||u<1||u>30?rgb(70,46,26):v%8>2&&u%4!==3?rgb(60+(u*37+v*11)%120,50+u*17%90,40+u*29%70):rgb(100,70,42)
+].forEach((f,i)=>{TEXL[L_PR+i]=mkTex(f)});
+TEXL[L_ROOF]=mkTex((u,v,n)=>v%6===0||(u+(v/6|0)*5)%10===0?gray(40):gray(72,n*.6));
+// Floors: two textures per floor colour of this map (core.js FPAL, sampled from the blueprint). Boards mean bullets go
+// through; the solid version is tiles where the plan is pale and grey, carpet or screed otherwise.
+FPAL.forEach((q,i)=>{
+  const [r,g,b]=q.split(',').map(Number),pale=Math.max(r,g,b)-Math.min(r,g,b)<30&&r+g+b>330;
+  TEXL[L_FS+2*i]=mkTex((u,v,n)=>v%8===0||(u+(v>>3)*11)%32===0?rgb(r*.55,g*.55,b*.55):rgb(r+n,g+n,b+n));
+  TEXL[L_FS+2*i+1]=mkTex(pale?(u,v,n)=>u%16===0||v%16===0?rgb(r*.72,g*.72,b*.72):rgb(r+n*.5,g+n*.5,b+n*.5):(u,v,n)=>rgb(r+n*1.4,g+n*1.4,b+n*1.4));
+});
+const NTEX=L_FS+2*FPAL.length;
 
 // ---------- sprites (64x64 array layers; the picture sits in the top-left w x h) ----------
 const SW=20,SH=36,SPRL=[];

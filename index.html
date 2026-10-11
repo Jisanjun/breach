@@ -137,7 +137,8 @@ Space: 열린 창문·설치형 방패 넘기 · 레펠(공격, 집 바깥벽 �
 나무 바닥은 총알이 뚫는다: 위층에서 아래로, 아래층에서 천장으로 쏠 수 있고 구멍으로 내려다볼 수 있다 (장선은 남음)
 해치를 열면 아래층으로 뛰어내린다. 위에서 내려다보거나 아래에서 올려다보며 G(폭약·해머·보강) 또는 V
 밝은 벽·문·창문 판자도 뚫린다. 벽돌·회색 블록 벽·강철은 안 뚫리고, 보강한 벽과 해치는 용접 폭약으로만
-바닥이 나무면 뚫리고, 회색(타일·콘크리트)이면 안 뚫린다</pre>
+바닥에 널빤지 줄눈이 보이면 뚫리고, 타일·카펫·콘크리트면 안 뚫린다 (방마다 바닥 색은 실제 맵 도면에서 가져왔다)
+가구와 차량: 낮은 가구(탁자·소파·침대·조리대) 위로는 보이고 쏠 수 있다. 한 칸짜리 낮은 가구는 Space 로 넘는다</pre>
   </details>
   <div id="ver"></div>
 </div></div>
@@ -146,7 +147,7 @@ Space: 열린 창문·설치형 방패 넘기 · 레펠(공격, 집 바깥벽 �
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'7.1';
+const V=location.hostname==='localhost'?Date.now():'7.2';
 for(const f of ['maps','core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>
