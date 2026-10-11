@@ -82,8 +82,8 @@ function selfTest(){
   const ok=(c,m)=>console.assert(c,m),G=FH,U=2*FH;               // G, U: row offsets of the ground and upper floors
   loadMap();site=1;
   ok(MAP.every(r=>r.length===MW)&&MH===NL*FH&&spawns.every(g=>g.length===5)&&sites.length===4&&sites.every(s=>s.cells.length>=15),'map shape');
-  ok(zone[(G+1)*MW+1]===0&&zone[3*MW+9]===0&&zone[(G+7)*MW+10]===1&&inSite(16.5,G+8.5)&&!inSite(16.5,U+8.5),'zones');
-  ok(roomAt(16.5,G+8.5)==='1층 TV방'&&roomAt(11,7)==='지하 차고'&&roomAt(2,G+2)==='1층 마당','callouts');
+  ok(zone[(G+1)*MW+1]===0&&zone[PIT]===0&&zone[(G+8)*MW+10]===1&&inSite(17.5,G+23.5)&&!inSite(17.5,U+23.5),'zones');
+  ok(roomAt(17.5,G+23.5)==='1층 TV방'&&roomAt(20.5,10.5)==='지하 차고'&&roomAt(2,G+2)==='1층 마당','callouts');
   for(let c=0;c<NC;c++){
     if(orig[c]>=SOFT){                           // thin walls must not meet a perpendicular thin wall (it would leave a gap)
       const [a,b]=orient[c]?[c-1,c+1]:[c-MW,c+MW];
@@ -93,47 +93,51 @@ function selfTest(){
     if(hatch0[c])ok(c>=OFFC&&!orig[c]&&!orig[c-OFFC]&&!nofloor[c],'hatch has free floor above and below at '+c);
   }
   // walls
-  const c=(G+10)*MW+10,sight=()=>trace(10.3,G+8.5,.5,0,1,0,4.5,-1);     // soft wall between the kitchen and the hallway
+  const c=(G+20)*MW+15,sight=()=>trace(15.3,G+18.5,.5,0,1,0,4.5,-1);    // soft wall between the lobby and the TV room
   ok(grid[c]===SOFT&&orient[c]===1,'soft wall where expected');
   ok(Math.abs(sight()-2)<1e-6&&hitC===c,'intact wall blocks sight');
-  trace(10.3,G+8.5,.5,0,1,0,4.5,0);
+  trace(15.3,G+18.5,.5,0,1,0,4.5,0);
   ok(holeN[c]===1&&sight()===4.5,'bullet hole opens a sight line');
-  trace(10.5,G+8.5,.5,0,1,0,4.5,0);ok(holes[c*TEX+16]===0,'studs stop bullets');
+  trace(15.5,G+18.5,.5,0,1,0,4.5,0);ok(holes[c*TEX+16]===0,'studs stop bullets');
   for(let i=0;i<9;i++)punch(c,5+i%3*11,5+(i/3|0)*11,5);
   ok(grid[c]===0,'heavily holed wall collapses');
-  reinforce(c+1);trace(11.3,G+8.5,.5,0,1,0,4.5,0);
+  reinforce(c+1);trace(16.3,G+18.5,.5,0,1,0,4.5,0);
   ok(grid[c+1]===RTHIN&&holeN[c+1]===0,'reinforced wall stops bullets');
   destroy(c+1);ok(grid[c+1]===RTHIN,'normal breach leaves reinforced wall');
   destroy(c+1,1);ok(grid[c+1]===0,'thermal breach opens reinforced wall');
-  const d=c+2;destroy(d);ok(orig[d]===DOOR&&grid[d]===0,'door breaks');barricade(d);ok(grid[d]===DOOR&&holeN[d]===0,'door can be boarded up again');
-  const w=(G+5)*MW+10;punch(w,10,2,3);punch(w,10,28,3);ok(orig[w]===WIN&&holeN[w]===0,'window frame is solid');
-  destroy(w);ok(grid[w]===WIN&&holes[w*TEX+5]===WMID&&!free(10.5,G+5.5),'window opens but stays a wall');
-  ok(los(10.5,G+4.2,.5,10.5,G+7,.5)&&!los(10.5,G+4.2,.1,10.5,G+7,.1),'open window: see through the middle, not the sill');
-  const n={k:'frag',x:9.5,y:G+8.5,z:.5,vx:0,vy:6,vz:0,fuse:9};nades.length=0;nades.push(n);
+  const hw=c+3;trace(18.3,G+18.5,.5,0,1,0,4.5,0);destroy(hw,1);
+  ok(grid[hw]===HWALL&&holeN[hw]===0&&trace(18.3,G+18.5,.5,0,1,0,4.5,-1)===2,'solid interior wall: no holes, no breach');
+  const d=(G+20)*MW+23;destroy(d);ok(orig[d]===DOOR&&grid[d]===0,'door breaks');barricade(d);ok(grid[d]===DOOR&&holeN[d]===0,'door can be boarded up again');
+  const w=(G+9)*MW+17;punch(w,10,2,3);punch(w,10,28,3);ok(orig[w]===WIN&&holeN[w]===0,'window frame is solid');
+  destroy(w);ok(grid[w]===WIN&&holes[w*TEX+5]===WMID&&!free(17.5,G+9.5),'window opens but stays a wall');
+  ok(los(17.5,G+8.2,.5,17.5,G+11,.5)&&!los(17.5,G+8.2,.1,17.5,G+11,.1),'open window: see through the middle, not the sill');
+  const n={k:'frag',x:13.5,y:G+18.5,z:.5,vx:0,vy:6,vz:0,fuse:9};nades.length=0;nades.push(n);
   for(let i=0;i<60;i++)updNades(.016);
-  ok(n.y<G+10.5&&n.y>G+6.5&&n.z<.1,'grenade bounces off a wall and lands');nades.length=0;
+  ok(n.y<G+20.5&&n.y>G+15.5&&n.z<.1,'grenade bounces off a wall and lands');nades.length=0;
   // storeys
-  ok(ground(9.5,G+11.5)===.25&&ground(10.5,G+11.5)===.75&&ground(23.5,12.5)===.25,'stair heights');
-  ok(flowTo(11.5,U+11.5)[(G+12)*MW+9]===3,'path up the stairs');
-  Object.assign(me,{x:9.5,y:G+12.5,h:0,vz:0,dead:0,drone:0});
-  tryMove(9.5,G+11.6);settle(.02);for(let i=0;i<30;i++){tryMove(me.x+.07,me.y);settle(.02)}
-  ok(me.y>U&&me.h===0&&me.x>11,'walking up the stairs arrives on the upper floor');
+  ok(ground(17.5,G+10.5)===.25&&ground(18.5,G+10.5)===.75&&ground(15.5,14.5)===.25,'stair heights');
+  ok(flowTo(19.5,U+10.5)[(G+10)*MW+16]===3,'path up the stairs');
+  for(const g of spawns)for(const s of sites)ok(flowTo(s.x,s.y)[(g[0][1]|0)*MW+(g[0][0]|0)]>0,'every objective can be walked to from every spawn');
+  Object.assign(me,{x:16.5,y:G+10.5,h:0,vz:0,dead:0,drone:0});
+  for(let i=0;i<40;i++){tryMove(me.x+.07,me.y);settle(.02)}
+  ok(me.y>U&&me.h===0&&me.x>19,'walking up the stairs arrives on the upper floor');
   for(let i=0;i<12;i++){tryMove(me.x-.07,me.y);settle(.02)}
   ok(me.y<U&&me.h>.4&&me.h<1,'walking back off the landing puts you on the stairs');
-  Object.assign(me,{x:11.5,y:G+11.5,h:0,vz:0});tryMove(10.9,G+11.5);ok(me.x===11.5,'the flank of the stairs is a wall from below');
-  const fl=(U+7)*MW+16,down=()=>los(16.3,U+7.5,.5,16.3,G+7.5,.5);       // upper-floor floorboards over the TV room
+  Object.assign(me,{x:19.5,y:G+10.5,h:0,vz:0});tryMove(18.9,G+10.5);ok(me.x===19.5,'the flank of the stairs is a wall from below');
+  const fl=(U+17)*MW+23,down=()=>los(23.3,U+17.5,.5,23.3,G+17.5,.5);    // master bedroom floorboards over the living room
   ok(softF[fl]&&!down(),'floor blocks sight');
-  trace(16.3,U+7.5,.5,1e-9,0,-20,2,0);
+  trace(23.3,U+17.5,.5,1e-9,0,-20,2,0);
   ok(fholes[fl*TEX+9]&&down(),'a shot through the floor opens a sight line');
-  const hc=(U+8)*MW+16,below=(G+8)*MW+16;                               // hatch from the car room into the TV room
-  ok(hatch[hc]===1&&flowTo(16.5,G+8.5)[hc]>5,'shut hatch: the way down is the stairs');
+  ok(!softF[(G+21)*MW+17]&&softF[(G+7)*MW+10],'solid floor in the TV room, timber in the dining room');
+  const hc=(U+16)*MW+25,below=(G+16)*MW+25;                             // hatch from the master bedroom into the living room
+  ok(hatch[hc]===1&&flowTo(25.5,G+16.5)[hc]>5,'shut hatch: the way down is the stairs');
   hitHatch(hc);hitHatch(hc);ok(hatch[hc]===1,'two melee hits leave a hatch shut');hitHatch(hc);ok(hatch[hc]===3,'third hit opens it');
   for(const k in flows)delete flows[k];
-  ok(flowTo(16.5,G+8.5)[hc]===1&&flowTo(16.5,U+8.5)[below]>5,'open hatch: one step down, still the long way up');
-  Object.assign(me,{x:15.5,y:U+8.5,h:0,vz:0});for(let i=0;i<40;i++){tryMove(me.x+.05,me.y);settle(.02)}
+  ok(flowTo(25.5,G+16.5)[hc]===1&&flowTo(25.5,U+16.5)[below]>5,'open hatch: one step down, still the long way up');
+  Object.assign(me,{x:24.5,y:U+16.5,h:0,vz:0});for(let i=0;i<40;i++){tryMove(me.x+.05,me.y);settle(.02)}
   ok(me.y<U&&me.y>G&&me.h===0,'walking onto an open hatch drops you a storey');
-  loadMap();hatch[hc]=2;blastHatches(16.5,G+8.5,1.3);ok(hatch[hc]===2,'reinforced hatch survives a blast from below');
-  hatch[hc]=1;blastHatches(16.5,G+8.5,1.3);ok(hatch[hc]===3,'plain hatch is blown open from below');
+  loadMap();hatch[hc]=2;blastHatches(25.5,G+16.5,1.3);ok(hatch[hc]===2,'reinforced hatch survives a blast from below');
+  hatch[hc]=1;blastHatches(25.5,G+16.5,1.3);ok(hatch[hc]===3,'plain hatch is blown open from below');
   for(const k in flows)delete flows[k];
   const sides=()=>(fillBots(),[0,1].map(t=>roster.filter(p=>p.team===t).length).join());
   roster=[{id:0,team:0}];fillTo=6;ok(sides()==='1,5','1 v 5: bots only on the side with no humans');

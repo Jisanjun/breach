@@ -141,7 +141,7 @@ function seg(ox,oy,oz,dx,dy,slope,lim,hole,base){
         const ui=u*TEX|0,vi=clamp((1-oz-slope*tt)*TEX|0,0,TEX-1),open=holes[c*TEX+ui]>>>vi&1;
         if(hole===-2||!open){
           hitC=c;hitU=ui;hitV=vi;
-          if(hole<0||g===RTHIN)return tt;
+          if(hole<0||g===RTHIN||g===HWALL)return tt;
           punch(c,ui,vi,hole,1);
           if(grid[c]&&!(holes[c*TEX+ui]>>>vi&1))return tt;     // stud, sill or lintel: the bullet stops
           pens.push(base+tt);

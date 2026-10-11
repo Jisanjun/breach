@@ -124,10 +124,12 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 방어: 3분 버티기, 공격팀 전멸, 또는 설치된 디퓨저 해제
 준비 단계: 공격팀은 드론 정찰, 방어팀은 벽·해치 보강. 방장은 Enter 로 건너뛴다. 4라운드 선승
 
-맵은 3층 주택(지하·1층·2층). 계단은 걸어서 오르내리고, 마당 북쪽 진입로로 내려가면 차고 문, 동쪽 계단은 2층 발코니
+맵은 하우스(지하·1층·2층). 계단은 서쪽·중앙·남쪽과 지하 계단, 걸어서 오르내린다
+동쪽 진입로로 내려가면 차고 문(부숴야 열린다), 북쪽 바깥 계단은 2층 발코니
 나무 바닥은 총알이 뚫는다: 위층에서 아래로, 아래층에서 천장으로 쏠 수 있고 구멍으로 내려다볼 수 있다 (장선은 남음)
 해치를 열면 아래층으로 뛰어내린다. 위에서 내려다보거나 아래에서 올려다보며 G(폭약·해머·보강) 또는 V
-밝은 벽·문·창문 판자도 뚫린다. 벽돌·콘크리트·강철은 안 뚫리고, 보강한 벽과 해치는 용접 폭약으로만</pre>
+밝은 벽·문·창문 판자도 뚫린다. 벽돌·회색 블록 벽·강철은 안 뚫리고, 보강한 벽과 해치는 용접 폭약으로만
+바닥이 나무면 뚫리고, 회색(타일·콘크리트)이면 안 뚫린다</pre>
   </details>
   <div id="ver"></div>
 </div></div>
@@ -136,7 +138,7 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'5.2';
+const V=location.hostname==='localhost'?Date.now():'6.0';
 for(const f of ['core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>

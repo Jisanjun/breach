@@ -138,9 +138,9 @@ function hud(){
   else if(doorAhead(1)>=0)m='[B] 바리케이드 설치';
   else if(o.trap){const c=doorAhead(0);m=me.gad&&c>=0&&traps[c]===undefined?'[G] 문 함정 설치':''}
   else{
-    aim(1.6);const t=grid[hitC];
-    if(hitC>=0&&me.gad&&!o.sensor)m=o.hammer?(t!==RTHIN?'[G] 해머':''):isAtk()?(t!==RTHIN||o.thermal?'[G] '+o.g:''):t===SOFT?'[G] 벽 보강':'';
-    if(hitC>=0&&t!==RTHIN)m+=(m?' · ':'')+'[V] 타격';
+    aim(1.6);const t=grid[hitC],hit=hitC>=0&&t!==HWALL;         // nothing to offer on a solid wall
+    if(hit&&me.gad&&!o.sensor)m=o.hammer?(t!==RTHIN?'[G] 해머':''):isAtk()?(t!==RTHIN||o.thermal?'[G] '+o.g:''):t===SOFT?'[G] 벽 보강':'';
+    if(hit&&t!==RTHIN)m+=(m?' · ':'')+'[V] 타격';
   }
   put('prompt',m);setW('progFill',prog*100);if($('prog').hidden!==!prog)$('prog').hidden=!prog;
   const sec=now/1000|0,showB=!!keys.Tab||phase==='end';        // scoreboard: Tab, and between rounds

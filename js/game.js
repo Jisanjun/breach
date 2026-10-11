@@ -113,6 +113,7 @@ function gadget(){
   aim(1.6);
   if(hitC<0)return;
   const c=hitC,g=grid[c];
+  if(g===HWALL)return;                           // solid wall: nothing to place or break
   if(o.hammer){if(g!==RTHIN){destroy(c);send({t:'x',c});me.gad--;meleeT=.6;sfx.thud(me.x,me.y)}}
   else if(isAtk()){if(g!==RTHIN||o.thermal){charge=c;me.gad--;sfx.place()}}
   else if(g===SOFT){reinforce(c,1);me.gad--}

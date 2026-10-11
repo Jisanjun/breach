@@ -105,7 +105,7 @@ function buildGeo(){
       for(const zz of [z,z+1])quad([x,hw,zz,x+1,he,zz,x+1,f,zz,x,f,zz],UV,L_CONC,.8,-1,0);
       if(rampB[c]){const xx=d>0?x+1:x;quad([xx,hi,z,xx,hi,z+1,xx,f,z+1,xx,f,z],UV,L_CONC,.9,-1,0)}
     }else if(!nofloor[c]&&hatch[c]!==3){                        // floor
-      const hs=hatch[c],L=hs?hs===2?L_HATCHR:L_HATCH:out?f===1?L_GRASS:L_CONC:zone[c]===2+site?L_SITE:f?L_WOOD:L_CONC;
+      const hs=hatch[c],L=hs?hs===2?L_HATCHR:L_HATCH:out?f===1?L_GRASS:L_CONC:zone[c]===2+site?L_SITE:softF[c]?L_WOOD:L_CONC;   // timber exactly where bullets go through
       quad([x,f,z,x+1,f,z,x+1,f,z+1,x,f,z+1],UV,L,out?1.1:.92,softF[c]&&!hs?NC+c:-1,1);
     }
     const up=c+OFFC;                                            // ceiling: the underside of the floor above, or the roof

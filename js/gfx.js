@@ -25,7 +25,8 @@ TEXL[L_STAIR]=mkTex((u,v,n)=>u%8<2?rgb(40,40,44):v<2||v>29?rgb(230,190,40):rgb(1
 TEXL[L_HATCH]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(60,44,28):u===15||u===16?rgb(70,50,32):rgb(150+n,108+n,62+n));
 TEXL[L_HATCHR]=mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(30,32,38):u%8===4&&v%8===4?rgb(160,160,170):rgb(70+n/2,76+n/2,88+n/2));
 TEXL[L_STUD]=mkTex((u,v,n)=>rgb(120+n,84+n,48+n));              // timber shown where plaster or flooring next to a stud or joist is gone
-const NTEX=19;
+TEXL[HWALL]=mkTex((u,v,n)=>v>27?gray(70):v%14===0||(u+(v/14|0)*8)%16===0?gray(120):gray(168,n*.5));   // solid interior wall: painted blockwork, so it never reads as plaster
+const NTEX=20;
 
 // ---------- sprites (64x64 array layers; the picture sits in the top-left w x h) ----------
 const SW=20,SH=36,SPRL=[];

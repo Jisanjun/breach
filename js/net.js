@@ -111,7 +111,7 @@ function onNet(m){
     case 'sync':                                  // joined mid-round: take the host's world and watch until the next round
       if(isHost)break;
       newRound(clamp(m.site|0,0,sites.length-1),clamp(m.grp|0,0,3));
-      if(Array.isArray(m.g)&&m.g.length===NC)for(let i=0;i<NC;i++)grid[i]=clamp(m.g[i]|0,0,WIN);
+      if(Array.isArray(m.g)&&m.g.length===NC)for(let i=0;i<NC;i++)grid[i]=m.g[i]===HWALL?HWALL:clamp(m.g[i]|0,0,WIN);
       for(const k in m.h||{}){
         const q=+k,a=m.h[k];
         if(okCell(q)&&Array.isArray(a)&&a.length===TEX){for(let u=0;u<TEX;u++)holes[q*TEX+u]=a[u]>>>0;holeN[q]=clamp(m.n&&m.n[k]|0,0,9999)}
