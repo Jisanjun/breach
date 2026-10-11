@@ -1,13 +1,14 @@
 'use strict';
 // Player state, weapons, operators, host-driven bots and round flow.
 // Damage, fire rate and magazine follow Siege's own figures for each class: ar ~ R4-C / AK-12, smg ~ MP5 / FMG-9,
-// dmr ~ 417, pistol ~ P226. The shotgun stays below Siege's per-pellet damage: there is no range falloff here to keep it short-ranged.
+// dmr ~ 417, pistol ~ P226, shotgun ~ M590A1. fo is the range falloff in cells (a cell is roughly a metre): full damage up
+// to fo[0], down to the share fo[2] from fo[1] on. A headshot kills at any range, except from the shotgun.
 const GUNS={
-  ar:{n:'돌격소총',rpm:800,dmg:42,pel:1,spr:.028,hole:0,mag:30,res:120,kick:.012,auto:1,rel:1.9},
-  smg:{n:'기관단총',rpm:850,dmg:30,pel:1,spr:.042,hole:0,mag:30,res:150,kick:.009,auto:1,rel:1.7},
-  sg:{n:'산탄총',rpm:80,dmg:15,pel:8,spr:.14,hole:2,mag:6,res:24,kick:.05,auto:0,rel:2.4},
+  ar:{n:'돌격소총',rpm:800,dmg:42,pel:1,spr:.028,hole:0,mag:30,res:120,kick:.012,auto:1,rel:1.9,fo:[22,32,.55]},
+  smg:{n:'기관단총',rpm:850,dmg:30,pel:1,spr:.042,hole:0,mag:30,res:150,kick:.009,auto:1,rel:1.7,fo:[16,25,.6]},
+  sg:{n:'산탄총',rpm:80,dmg:34,pel:8,spr:.14,hole:2,mag:7,res:28,kick:.05,auto:0,rel:2.4,fo:[4,11,.3]},
   dmr:{n:'지정사수소총',rpm:450,dmg:66,pel:1,spr:.012,hole:1,mag:20,res:60,kick:.03,auto:0,rel:2.1,zoom:.36},
-  pistol:{n:'권총',rpm:450,dmg:48,pel:1,spr:.03,hole:0,mag:15,res:45,kick:.018,auto:0,rel:1.4}};
+  pistol:{n:'권총',rpm:450,dmg:48,pel:1,spr:.03,hole:0,mag:15,res:45,kick:.018,auto:0,rel:1.4,fo:[11,20,.6]}};
 // Operators: [attackers, defenders]. g = gadget name (G key), nade = throwable (T key), d = menu description.
 // cls is Siege's weight class: 1 light (fast, least health), 2 medium, 3 heavy (slow, most health).
 const HP=[0,100,110,125],SPD=[0,1.08,1,.92];
@@ -76,7 +77,7 @@ function tryFire(){
   // spread: the first shot is true, a burst blooms, moving costs, aiming and crouching help
   const sp=g.spr*(ads?.3:1)*(moving?1.6:1)*(me.z<.4?.8:1)*(g.pel>1?1:Math.min(2.2,.25+shots*.25));
   // a clean headshot kills (160 beats even the 150-hp operator); shotgun pellets only double
-  for(let i=0;i<g.pel;i++)bullet(cam.x,cam.y,cam.z,me.a+rnd(sp),me.pitch+rnd(sp),g.dmg,g.hole,me,g.pel>1?g.dmg*2:160);
+  for(let i=0;i<g.pel;i++)bullet(cam.x,cam.y,cam.z,me.a+rnd(sp),me.pitch+rnd(sp),g.dmg,g.hole,me,g.pel>1?g.dmg*1.5:160,g.fo);
   // recoil: a fixed climb with a left-right weave you can learn, instead of random jitter
   me.pa=Math.min(1.35,me.pa+g.kick*(ads?.7:1));me.a+=g.kick*.6*Math.sin(shots*1.3)*(ads?.6:1);shots++;
   sfx.shot(k);send({t:'f',g:k});noiseAt(me.x,me.y,14,me.team);

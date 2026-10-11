@@ -192,7 +192,7 @@ function los(x0,y0,z0,x1,y1,z1){                 // z: height inside each point'
 }
 const sees=(x,y,z,e)=>{const [ey,ez]=eyeOf(e);return los(x,y,z,e.x,ey,ez)};   // is entity e's head visible from that point?
 // One bullet from `by` (me, or a bot the host is driving). Only the shooter's machine runs this.
-function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg){
+function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg,fo){   // fo: range falloff [full damage up to, weakest from, weakest share]
   const dx=Math.cos(a),dy=Math.sin(a),stop=trace(ox,oy,oz,dx,dy,slope,40,hole),oa=absZ(oy,oz),ol=fold(oy);
   let best,bd=stop,bz;
   for(const t of enemiesOf(by.team)){
@@ -209,10 +209,11 @@ function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg){
     return;
   }
   let k=1;for(const q of pens)if(q<bd)k*=.7;     // each panel penetrated costs damage
+  const far=fo&&bd>fo[0]?Math.max(fo[2],1-(bd-fo[0])/(fo[1]-fo[0])*(1-fo[2])):1;
   const p=at(bd);spawnP(p[0],p[1],p[2],5,BLOOD,1.5,.5,1);
   if(by!==me)return hitBy(by,best,dmg*k);
   const hs=bz>best.z-.08;
-  hitFoe(best,(hs?hsDmg:dmg)*k,hs);
+  hitFoe(best,(hs?hsDmg*(hsDmg<160?far:1):dmg*far)*k,hs);        // distance never saves a head from a rifle round
 }
 
 // ---------- grenades ----------

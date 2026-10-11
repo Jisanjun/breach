@@ -64,6 +64,7 @@ const P_NADE=spr(mkTex((u,v)=>(u-3.5)**2+(v-3.5)**2<12?(v<2?rgb(150,150,150):rgb
 const P_TRAP=spr(mkTex((u,v)=>v<2?(u%4<2?rgb(255,60,40):0):rgb(60,60,66),16,4),16,4);
 const P_PUFF=spr(mkTex((u,v,n)=>{const r=(u-7.5)**2+(v-7.5)**2;return r<30||r<60&&(u+v&1)?rgb(170+n,172+n,176+n):0},16,16),16,16);
 const P_CHARGE=spr(mkTex((u,v)=>u>5&&u<10&&v<3?rgb(255,40,30):rgb(26,26,28),16,10),16,10);
+const P_ROPE=spr(mkTex(()=>rgb(28,24,20),2,2),2,2);
 const P_WIRE=spr(mkTex((u,v)=>(u+v)%4===0||(u-v+16)%4===0?rgb(150,150,156):(u%6===0&&v%4===1)?rgb(210,210,214):0,32,8),32,8);
 const P_FLASH=spr(mkTex((u,v)=>(u-3.5)**2+(v-3.5)**2<14?rgb(255,230,120):0,8,8),8,8);
 // particle colours, as one-colour sprites

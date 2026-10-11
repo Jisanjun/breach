@@ -179,6 +179,9 @@ function render(){
   if(defuser)S(defuser,P_DEFUSER,.26,.16);
   if(charge>=0){const x=charge%MW+.5,y=(charge/MW|0)+.5,l=Math.hypot(ex-x,ez-fold(y))||1;S({x:x+(ex-x)/l*.08,y:y+(ez-fold(y))/l*.08},P_CHARGE,.3,.2,.4)}
   for(const c in traps)S({x:c%MW+.5,y:(c/MW|0)+.5},P_TRAP,.7,.05,.12);
+  const rope=(e,top)=>{const b=floorOf(e.y)+e.h+top;bill(e.x,b,fold(e.y),.025,NL-b,P_ROPE,1,sa,ca)};   // from the harness up to the eaves
+  if(me.rap&&!me.dead)rope({x:me.x+me.rx*.12,y:me.y+me.ry*.12,h:me.h},.2);
+  for(const o of Object.values(others)){const c=(o.y|0)*MW+(o.x|0);if(!o.dead&&o.z>.2&&(nofloor[c]||o.h>.05&&!ramp[c]))rope(o,o.z)}   // others: whoever hangs in the air is on a rope
   for(const c in wires)S({x:c%MW+.5,y:(c/MW|0)+.5},P_WIRE,.95,.24,.01);
   for(const g of nades)g.k==='c4'?S({x:g.x,y:g.y},P_CHARGE,.2,.13,g.z-.03):S({x:g.x,y:g.y},P_NADE,.07,.07,g.z-.035);
   for(const s of smokes){const k=Math.min(1,(14-s.t)*1.5,s.t/2)*1.2;for(const p of s.p)S({x:s.x+p[0],y:s.y+p[1]},P_PUFF,k,k,p[2]-k/2)}
