@@ -91,7 +91,7 @@
 | `js/game.js` | 무기, 오퍼레이터, 봇 AI, 라운드 |
 | `js/net.js` | 멀티플레이 (PeerJS, 호스트 브라우저가 중계·심판·봇 조종) |
 | `js/render.js` | WebGL2 월드 렌더러 (구멍은 마스크 텍스처로 실제 투과) + 2D 오버레이 |
-| `js/models.js` | three.js 층: 애니메이션 캐릭터 모델, 1인칭 총 모델 (로드 실패 시 스프라이트로 대체) |
+| `js/models.js` | three.js 층: 오퍼레이터 몸과 총을 상자로 조립해 그린다 — 모델 파일 없음 (three.js 로드 실패 시 스프라이트로 대체) |
 | `js/ui.js` | 입력, HUD, 메뉴 |
 | `js/main.js` | 프레임 루프, 자체 점검 |
 
@@ -107,7 +107,6 @@ python -m http.server 8765
 | 무엇 | 용도 | 라이선스 |
 |---|---|---|
 | [three.js](https://github.com/mrdoob/three.js) r186 (CDN) | glTF 모델 로드·애니메이션·조명 | MIT |
-| [Kenney](https://kenney.nl) Blocky Characters 2.0 (`assets/`) | 캐릭터 모델. 총은 `js/models.js` 에서 상자로 직접 만든다 | CC0 |
 | [PeerJS](https://github.com/peers/peerjs) (CDN) | WebRTC 연결 | MIT |
 
 참고한 자료: [awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) 의

@@ -143,7 +143,7 @@ Space: 열린 창문·설치형 방패 넘기 · 레펠(공격, 집 바깥벽 �
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'6.7';
+const V=location.hostname==='localhost'?Date.now():'6.8';
 for(const f of ['maps','core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 document.write('<script type="module" src="js/models.js?v='+V+'"><\/script>');   // three.js layer: character and weapon models
 </script>
