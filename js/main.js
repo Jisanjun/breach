@@ -73,6 +73,7 @@ function update(dt){
   updParts(dt);updNades(dt);
   const sp=viewTarget();
   if(sp){const [ey,ez]=eyeOf(sp);Object.assign(cam,{x:sp.x,y:ey,z:ez,a:sp.av,pa:0,pitch:0})}
+  else if(me.cv>=0&&!me.dead)Object.assign(cam,{x:cams[me.cv].x,y:cams[me.cv].y,z:.88,a:me.a,pa:me.pa,pitch:me.pitch});   // looking through a camera
   else{
     const [ey,ez]=eyeOf(me);let lx=me.x-sa*me.lean*.35,ly=ca*me.lean*.35;
     if(grid[((ey+ly)|0)*MW+(lx|0)]&&!me.drone){lx=me.x;ly=0}              // don't lean the eye into a wall

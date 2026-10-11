@@ -195,6 +195,10 @@ const sees=(x,y,z,e)=>{const [ey,ez]=eyeOf(e);return los(x,y,z,e.x,ey,ez)};   //
 function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg,fo){   // fo: range falloff [full damage up to, weakest from, weakest share]
   const dx=Math.cos(a),dy=Math.sin(a),stop=trace(ox,oy,oz,dx,dy,slope,40,hole),oa=absZ(oy,oz),ol=fold(oy);
   let best,bd=stop,bz;
+  if(by.team===atkTeam)for(let i=0;i<cams.length;i++){            // an attacker's round takes out a camera it passes through
+    const k=cams[i],rx=k.x-ox,ry=fold(k.y)-ol,al=rx*dx+ry*dy;
+    if(!k.dead&&al>0&&al<stop&&Math.abs(rx*dy-ry*dx)<.14&&Math.abs(oa+slope*al-floorOf(k.y)-.9)<.14)camDown(i,1);
+  }
   for(const t of enemiesOf(by.team)){
     if(t.dead||t.z<.05)continue;
     const rx=t.x-ox,ry=fold(t.y)-ol,al=rx*dx+ry*dy;

@@ -54,6 +54,7 @@ for(const [id,key,lo,hi] of [['sSens','sens',.2,3],['sVol','vol',0,1],['sFov','f
 }
 $('bSolo').onclick=()=>{startOffline();lockPointer()};
 $('bAlone').onclick=()=>{startOffline(1);lockPointer()};
+$('bFree').onclick=()=>{startOffline(2);lockPointer()};
 $('bHost').onclick=host;$('bJoin').onclick=join;
 $('bStart').onclick=()=>{$('res').textContent='';startRound();lockPointer()};
 $('bTeam').onclick=()=>request({t:'team'});
@@ -87,6 +88,7 @@ addEventListener('keydown',e=>{
     }
     case 'KeyX':swapGun(1-gun);break;
     case 'Space':vault();break;
+    case 'Digit5':camView();break;
     case 'Enter':if(isHost&&phase==='prep')phaseEnd=0;break;       // host skips the rest of prep; hostTick announces the phase change
     case 'KeyO':if(phase==='prep'&&!me.dead)pickOp(side(),(cfg.ops[side()]+1)%OPS[side()].length);break;   // switch operator while still in prep
   }
@@ -134,6 +136,7 @@ function hud(){
   if(phase==='end')m='';
   else if(me.dead){const sp=viewTarget();m=(deathMsg?deathMsg+'\n':'')+(sp?'관전: '+sp.name+' (클릭: 다음 팀원)':'다음 라운드 대기')}
   else if(!locked())m='화면을 클릭하면 조작 시작';
+  else if(me.cv>=0)m='카메라 '+(me.cv+1)+' / '+cams.length+' — 마우스로 둘러보기 · [5] 다음 카메라 (마지막 다음은 복귀)';
   else if(holdT>0){m=isAtk()?'디퓨저 설치 중':'디퓨저 해제 중';prog=holdT/5}
   else if(me.rap){const k=spaceAct().k;m='레펠 — [W/S] 오르내리기 · [A/D] 옆으로'+(k===1?' · [Space] 들어가기':k===2?' · [Space] 줄 풀기':'')}
   else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+(isAtk()?' · [1-4] 진입 방향: '+'북남서동'[me.grp]:'')+' · [O] 오퍼레이터 변경'+(isHost?' · [Enter] 준비 건너뛰기':'');

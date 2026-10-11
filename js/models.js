@@ -69,7 +69,7 @@ window.drawModels=dt=>{
   for(const id in inst)if(!seen[id]){scene.remove(inst[id].root);delete inst[id]}
   renderer.resetState();renderer.render(scene,camera);
   // first-person weapon: lowered while reloading or busy, raised to the eye when aiming, kicked back by each shot
-  const on=!me.dead&&!me.drone&&mode!=='menu'&&phase!=='lobby',k=on?me.guns[gun]:null;
+  const on=!me.dead&&!me.drone&&!(me.cv>=0)&&mode!=='menu'&&phase!=='lobby',k=on?me.guns[gun]:null;
   for(const n in vguns)vguns[n].visible=n===k;
   if(k){
     const a=clamp((cfg.fov-fov)/(cfg.fov-(curGun().zoom||.55)),0,1),busy=reloadT>0||sensing||holdT>0?1:0,g=vguns[k];

@@ -36,7 +36,21 @@ let fireT=0,reloadT=0,meleeT=0,nadeT=0,muzzle=0,hitT=0,hitHS=0,hurtT=0,hurtA=0,b
 const feedL=[],stats={},pings=[],traps={},wires={},flows={};   // traps, wires: cell -> team that set it
 me.op=OPS[0][cfg.ops[0]];                        // the operator I'm equipped as; a menu pick only takes effect at the next loadout
 const isAtk=()=>me.team===atkTeam,side=()=>isAtk()?0:1,op=()=>me.op;
-const canAct=()=>!me.dead&&(phase==='act'||phase==='prep'&&!isAtk());
+const canAct=()=>!me.dead&&!(me.cv>=0)&&(phase==='act'||phase==='prep'&&!isAtk());   // not while watching a camera
+// ---------- cameras ----------
+// Fixed cameras under the ceiling ('k' in the map). Defenders step through them with 5; attackers shoot them out.
+let cams=[];
+function camView(){
+  if(me.dead||isAtk()||me.drone||phase==='end')return;
+  let i=me.cv>=0?me.cv:-1;
+  do i++;while(i<cams.length&&cams[i].dead);
+  me.cv=i<cams.length?i:-1;sfx.ui();
+}
+function camDown(i,net){
+  const k=cams[i];if(!k||k.dead)return;
+  k.dead=1;if(me.cv===i)me.cv=-1;
+  spawnP(k.x,k.y,.9,8,SPARK,3,.3,1);sfx.crash(k.x,k.y);if(net)send({t:'cx',i});
+}
 const foes=()=>Object.values(others).filter(o=>o.team!==me.team);
 const enemiesOf=t=>[me,...Object.values(others)].filter(e=>e.team!==t);
 const hostBots=()=>isHost?Object.values(others).filter(o=>o.bot&&!o.dead):[];
@@ -250,7 +264,7 @@ function smoked(x0,y0,x1,y1){                    // does a smoke cloud sit on th
 function noiseAt(x,y,r,team){                    // host: bots of the other side within earshot turn hostile and remember where
   for(const b of hostBots())if(b.team!==team&&Math.hypot(b.x-x,fold(b.y)-fold(y))<r){b.alert=1;b.heard=[x,y];b.heardT=Date.now()}
 }
-let prepN=0;
+let prepN=0,practice=0;
 function botPrep(){                              // host, each net tick of the prep phase: defender bots reinforce up to three walls of the objective
   if(prepN>2||Math.random()>.04||!hostBots().some(b=>b.team!==atkTeam))return;
   const cand=[];for(const c of sites[site].cells)for(const n of [c-1,c+1,c-MW,c+MW])if(grid[n]===SOFT)cand.push(n);
@@ -329,18 +343,19 @@ function loadout(){
 }
 function resetMe(){
   me.dead=0;me.pa=me.pitch=me.lean=me.h=0;me.z=.5;me.a=Math.atan2(fold(sites[site].y)-fold(me.y),sites[site].x-me.x);
-  me.sx=me.x;me.sy=me.y;me.drone=isAtk()?1:0;me.rap=0;    // attackers scout by drone during prep
+  me.sx=me.x;me.sy=me.y;me.drone=isAtk()?1:0;me.rap=0;me.cv=-1;    // attackers scout by drone during prep
   holdT=flashT=shots=0;deathMsg='';loadout();
 }
 function newRound(s,g){
   loadMap();site=s;spawnGrp=g;charge=-1;defuser=null;msg='';
   parts.length=nades.length=smokes.length=pings.length=0;
   for(const c in traps)delete traps[c];for(const c in wires)delete wires[c];for(const c in flows)delete flows[c];prepN=0;
+  cams=camSpots.map(p=>({x:p[0],y:p[1],dead:0}));
   bomb.x=sites[s].x;bomb.y=sites[s].y;
 }
 const atkSpawn=i=>spawns[spawnGrp][i%5];
 function defSpawn(i){const cs=sites[site].cells,c=cs[(1+i*3)%cs.length];return [c%MW+.5,(c/MW|0)+.5]}   // spread through the objective room
 function startOffline(alone){                    // solo practice: a local match, bots fill both teams — or only the other one
-  offline=1;isHost=1;mode='mp';me.id=0;me.name=myName();fillTo=alone?6:5;score=[0,0];atkTeam=0;
+  offline=1;isHost=1;mode='mp';me.id=0;me.name=myName();fillTo=alone===2?0:alone?6:5;practice=alone===2;score=[0,0];atkTeam=0;   // alone 2: nobody else, no clock
   roster=[{id:0,name:me.name,team:0}];syncLobby();startRound();
 }

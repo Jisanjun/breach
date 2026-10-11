@@ -27,7 +27,7 @@ const saveCfg=()=>{try{localStorage.setItem('breach',JSON.stringify(cfg))}catch(
 // ~ ! boarded window.
 // Floor: . normal (timber when there is a room underneath), , solid floor (tiles, concrete: bullets stop), (space) none —
 // open air, a stairwell or the pit of the driveway, h hatch, >> / << stairs rising east / west.
-// 1-4 attacker spawn groups (N, S, W, E), r roaming-bot spot, a-d objective rooms.
+// 1-4 attacker spawn groups (N, S, W, E), r roaming-bot spot, k defenders' camera, a-d objective rooms.
 //
 // The storeys are stored one after another in the same grid: storey f occupies rows f*FH .. f*FH+FH-1, at the same x and
 // local y. So a position is (x, y, h) with the storey folded into y, and walls, holes and pathfinding stay per-storey 2D.
@@ -44,7 +44,7 @@ const grid=new Uint8Array(NC),orig=new Uint8Array(NC),orient=new Uint8Array(NC),
 const holeN=new Uint16Array(NC),hatch=new Uint8Array(NC),hatch0=new Uint8Array(NC);      // hatch: 1 shut, 2 reinforced, 3 open
 const nofloor=new Uint8Array(NC),softF=new Uint8Array(NC),ramp=new Int16Array(NC),rampB=new Float32Array(NC),link=new Int32Array(NC).fill(-1);
 const holes=new Uint32Array(NC*TEX),fholes=new Uint32Array(NC*TEX);   // per cell: TEX columns, each a bitmask of punched-out rows (walls / the floor under the cell)
-const spawns=[[],[],[],[]],roamSpots=[],sites=[];
+const spawns=[[],[],[],[]],roamSpots=[],camSpots=[],sites=[];
 const floorOf=y=>y/FH|0,fold=y=>y%FH;             // which storey a y is on, and y within that storey
 const roomAt=(x,y)=>{const f=floorOf(y),l=fold(y)|0,r=ROOMS.find(r=>r[0]===f&&x>=r[1]&&l>=r[2]&&x<r[3]+1&&l<=r[4]);return FLOORN[f]+' '+(r?r[5]:zone[(y|0)*MW+(x|0)]?'':'마당')};
 // Feet height above the storey's floor at a spot: 0 except on stairs.
@@ -62,6 +62,7 @@ let geoDirty=1,maskAll=1;const dirtyM=new Set();  // renderer bookkeeping: rebui
     orig[c]=KEY[ch]||0;orient[c]='-=~H'.includes(ch)?1:0;     // 1 = wall runs along x
     if(ch>='1'&&ch<='4')spawns[ch-1].push([x+.5,y+.5]);
     if(ch==='r')roamSpots.push([x+.5,y+.5]);
+    if(ch==='k')camSpots.push([x+.5,y+.5]);                     // a defenders' camera under the ceiling
     if(ch==='h')hatch0[c]=1;
     if(ch===' ')nofloor[c]=1;
     if(RAMP[ch]){                                              // a flight is two cells; the uphill one starts half-way up and leads onto the storey above
