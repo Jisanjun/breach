@@ -9,7 +9,7 @@ function viewTarget(){                           // dead in a match: watch a liv
 }
 let stepT=0;
 function update(dt){
-  fireT-=dt;meleeT-=dt;nadeT-=dt;muzzle-=dt;hitT-=dt;hurtT-=dt;boomT-=dt;killT-=dt;flashT-=dt;
+  fireT-=dt;meleeT-=dt;nadeT-=dt;muzzle-=dt;hitT-=dt;hurtT-=dt;boomT-=dt;killT-=dt;flashT-=dt;fade-=dt;
   if(mode==='menu'){me.a+=dt*.12;cam.a=me.a;return}            // title screen: slow pan over the yard
   if(reloadT>0&&(reloadT-=dt)<=0){const n=Math.min(curGun().mag-ammo[gun],res[gun]);ammo[gun]+=n;res[gun]-=n}
   const act=canAct(),drone=me.drone===1,f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0),ca=Math.cos(me.a),sa=Math.sin(me.a);
@@ -23,6 +23,12 @@ function update(dt){
   }
   if(!me.dead&&!me.drone&&!free(me.x,me.y))                               // a barricade went up on top of me: step out of it
     for(const [i,j] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=(me.x|0)+.5+i,y=(me.y|0)+.5+j;if(free(x,y)){me.x=x;me.y=y;break}}
+  if(!me.dead){                                                           // between floors: stairs both ways, open hatches down only
+    const c=(me.y|0)*MW+(me.x|0);
+    if(stair[c]&&!me.onStair){me.y+=me.y<FH?FH:-FH;fade=.3;sfx.step()}     // you arrive on the matching stair cell; step off before it works again
+    else if(hatch[c]===3){me.y-=FH;fade=.3;sfx.thud()}
+    me.onStair=stair[(me.y|0)*MW+(me.x|0)];
+  }
   me.z+=((me.drone?.1:keys.KeyC?.3:.5)-me.z)*Math.min(1,dt*12);
   me.lean+=((act?(keys.KeyE?1:0)-(keys.KeyQ?1:0):0)-me.lean)*Math.min(1,dt*10);
   fov+=((ads&&act?curGun().zoom||.55:cfg.fov)-fov)*Math.min(1,dt*14);
@@ -41,13 +47,11 @@ function update(dt){
     defuser.flash=Date.now()&256?1:0;
     if((beepT-=dt)<0){const left=(phaseEnd-Date.now())/1000;beepT=left<10?.25:1;sfx.beep(defuser.x,defuser.y,left<10)}
   }
-  if(mode==='solo'&&phase==='act'){
-    if((bfsT-=dt)<0){bfsT=.4;defuser?bfs(defuser.x,defuser.y):bfs(me.x,me.y)}
-    for(const b of bots)updBot(b,dt);
-    if(phase==='act'&&Date.now()>phaseEnd)defuser?endSolo(1,'디퓨저 작동 완료'):endSolo(0,'시간 초과');
-  }
   for(const id in others){
-    const o=others[id],k=Math.min(1,dt*14),mx=(o.tx-o.x)*k,my=(o.ty-o.y)*k,l=Math.hypot(mx,my);
+    const o=others[id];
+    if(o.bot&&isHost){if(phase==='act')updBot(o,dt);continue}             // the host plays the bots; everyone else interpolates them
+    if(Math.hypot(o.tx-o.x,o.ty-o.y)>3){o.x=o.tx;o.y=o.ty}                // stairs, hatch or respawn: don't glide across the map
+    const k=Math.min(1,dt*14),mx=(o.tx-o.x)*k,my=(o.ty-o.y)*k,l=Math.hypot(mx,my);
     o.x+=mx;o.y+=my;o.walk+=l;o.mv=l/dt;o.av+=Math.atan2(Math.sin(o.a-o.av),Math.cos(o.a-o.av))*k;o.flash-=dt;
   }
   for(let i=pings.length;i--;)if((pings[i].t-=dt)<=0)pings.splice(i,1);
@@ -64,11 +68,15 @@ function update(dt){
 function selfTest(){
   const ok=(c,m)=>console.assert(c,m);
   loadMap();site=0;
-  ok(MAP.every(r=>r.length===MW)&&spawns.every(g=>g.length===5)&&sites.length===2&&sites.every(s=>s.cells.length>=17),'map shape');
-  ok(zone[MW+1]===0&&zone[9*MW+10]===1&&inSite(29.5,8.5)&&!inSite(11.5,17.5),'zones');
-  for(let c=0;c<NC;c++)if(orig[c]>=SOFT){                      // thin walls must not meet a perpendicular thin wall (it would leave a gap)
-    const [a,b]=orient[c]?[c-1,c+1]:[c-MW,c+MW];
-    ok([a,b].every(n=>orig[n]<SOFT||orient[n]===orient[c]),'thin wall junction at '+c);
+  ok(MAP.every(r=>r.length===MW)&&MH===2*FH&&spawns.every(g=>g.length===5)&&sites.length===3&&sites.every(s=>s.cells.length>=17),'map shape');
+  ok(zone[MW+1]===0&&zone[9*MW+10]===1&&inSite(29.5,8.5)&&!inSite(11.5,17.5)&&sites[2].y>FH,'zones');
+  for(let c=0;c<NC;c++){
+    if(orig[c]>=SOFT){                           // thin walls must not meet a perpendicular thin wall (it would leave a gap)
+      const [a,b]=orient[c]?[c-1,c+1]:[c-MW,c+MW];
+      ok([a,b].every(n=>orig[n]<SOFT||orient[n]===orient[c]),'thin wall junction at '+c);
+    }
+    if(stair[c])ok(stair[c<OFFC?c+OFFC:c-OFFC]&&!orig[c],'stairs pair up at '+c);
+    if(hatch0[c])ok(c>=OFFC&&!orig[c]&&!orig[c-OFFC],'hatch has free floor above and below at '+c);
   }
   const c=11*MW+10,sight=()=>trace(10.3,9.5,.5,0,1,0,5,-1);    // soft wall south of the NW room, seen from inside
   ok(grid[c]===SOFT&&orient[c]===1,'soft wall where expected');
@@ -89,6 +97,15 @@ function selfTest(){
   const n={k:'frag',x:9.5,y:9.5,z:.5,vx:0,vy:6,vz:0,fuse:9};nades.length=0;nades.push(n);
   for(let i=0;i<60;i++)updNades(.016);
   ok(n.y<11.5&&n.y>8.5&&n.z<.1,'grenade bounces off a wall and lands');nades.length=0;
+  // two floors: a route up the stairs exists, and an open hatch adds a one-way drop
+  const up=(8+FH)*MW+11,below=8*MW+11;           // hatch over the NW room
+  ok(hatch[up]===1&&flowTo(11.5,8.5)[up]>5,'shut hatch: the way down is the stairs');
+  hitHatch(up);hitHatch(up);ok(hatch[up]===1,'two melee hits leave a hatch shut');hitHatch(up);ok(hatch[up]===3,'third hit opens it');
+  for(const k in flows)delete flows[k];
+  ok(flowTo(11.5,8.5)[up]===1&&flowTo(11.5,8.5+FH)[below]>5,'open hatch: one step down, still the long way up');
+  loadMap();hatch[up]=2;blastHatches(11.5,8.5,1.3);ok(hatch[up]===2,'reinforced hatch survives a blast from below');
+  hatch[up]=1;blastHatches(11.5,8.5,1.3);ok(hatch[up]===3,'plain hatch is blown open from below');
+  for(const k in flows)delete flows[k];
   loadMap();console.log('selfTest done');
 }
 

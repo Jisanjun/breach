@@ -11,8 +11,8 @@ addEventListener('pointerdown',audioInit);
 function out(node,vol,x,y){
   const g=ac.createGain(),p=ac.createStereoPanner();
   if(x!==undefined){
-    const l=Math.hypot(x-cam.x,y-cam.y);
-    vol/=1+l*.22;p.pan.value=Math.sin(Math.atan2(y-cam.y,x-cam.x)-cam.a)*Math.min(1,l);
+    const dy=fold(y)-fold(cam.y),l=Math.hypot(x-cam.x,dy);     // the other floor is heard right above/below, at half volume
+    vol/=(1+l*.22)*((y>=FH)===(cam.y>=FH)?1:2);p.pan.value=Math.sin(Math.atan2(dy,x-cam.x)-cam.a)*Math.min(1,l);
   }
   g.gain.value=vol;node.connect(g);g.connect(p);p.connect(master);return g;
 }

@@ -33,9 +33,7 @@ function pickOp(sd,i){
   if(mode!=='menu'&&phase==='prep'&&!me.dead&&sd===side())loadout();     // still in prep: re-equip right away
 }
 function drawBoard(){
-  const b=$('board');b.textContent='';
-  if(mode!=='mp'){b.textContent='혼자 연습 중';return}
-  const tb=document.createElement('table');
+  const b=$('board'),tb=document.createElement('table');b.textContent='';
   const row=(cells,cls)=>{
     const tr=document.createElement('tr');if(cls)tr.className=cls;
     for(const c of cells){const td=document.createElement('td');td.textContent=c;tr.append(td)}
@@ -54,12 +52,13 @@ for(const [id,key,lo,hi] of [['sSens','sens',.2,3],['sVol','vol',0,1],['sFov','f
   const e=$(id);e.min=lo;e.max=hi;e.step=.01;e.value=cfg[key];
   e.oninput=()=>{cfg[key]=clamp(+e.value,lo,hi);saveCfg();if(master)master.gain.value=cfg.vol};
 }
-$('bSolo').onclick=()=>{me.name=myName();startSolo();lockPointer()};
+$('bSolo').onclick=()=>{startOffline();lockPointer()};
 $('bHost').onclick=host;$('bJoin').onclick=join;
 $('bStart').onclick=()=>{$('res').textContent='';startRound();lockPointer()};
 $('bTeam').onclick=()=>request({t:'team'});
+$('fill').onchange=()=>{fillTo=clamp($('fill').value|0,0,5);if(isHost&&phase==='lobby')syncLobby()};
 $('bCopy').onclick=()=>navigator.clipboard.writeText($('link').value).then(()=>{$('bCopy').textContent='복사됨';setTimeout(()=>$('bCopy').textContent='초대 링크 복사',1500)});
-$('bResume').onclick=()=>lockPointer();
+$('bResume').onclick=lockPointer;
 $('bLeave').onclick=()=>{location.href=location.href.split(/[?#]/)[0]};
 if(room){$('bJoin').hidden=false;$('bHost').hidden=true}
 if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches)err('키보드와 마우스가 필요한 PC용 게임입니다');
@@ -99,7 +98,6 @@ document.addEventListener('pointerlockchange',()=>{
   if(mode!=='menu'&&phase!=='lobby'&&$('menu').hidden)showMenu('pause');   // Esc mid-round opens the pause panel
 });
 cv.onclick=()=>{
-  if(mode==='solo'&&phase==='end'&&Date.now()>phaseEnd)startSolo();
   if(me.dead)specI++;
   if(mode!=='menu'&&phase!=='lobby')lockPointer();
 };
@@ -112,27 +110,30 @@ function hud(){
   const now=Date.now(),s=Math.max(0,Math.ceil((phaseEnd-now)/1000)),o=op(),g=curGun(),off=me.drone||me.dead;
   put('clock',phase==='end'?'–:––':(s/60|0)+':'+String(s%60).padStart(2,'0'));
   const hot=defuser&&phase==='act'?'hot':'';if($('clock').className!==hot)$('clock').className=hot;
-  put('sub',phase==='end'?'':defuser?'디퓨저 작동 중 — '+(isAtk()?'지켜라':'해제하라'):phase==='prep'?'준비 단계 · '+(isAtk()?'공격':'방어'):isAtk()?'공격':'방어');
-  if(mode==='mp'){
-    const pip=t=>roster.filter(p=>p.team===t).map(p=>(p.id===me.id?me:others[p.id]||{dead:1}).dead?'○':'●').join('');
-    put('pip0',pip(0));put('pip1',pip(1));put('sc0',''+score[0]);put('sc1',''+score[1]);
-  }else{put('pip0',me.dead?'○':'●');put('pip1',bots.map(b=>b.dead?'○':'●').join(''));put('sc0','');put('sc1','')}
+  put('sub',phase==='end'?'':defuser?'디퓨저 작동 중 — '+(isAtk()?'지켜라':'해제하라'):(phase==='prep'?'준비 단계 · ':'')+(isAtk()?'공격':'방어')+(me.y>=FH?' · 2층':''));
+  const pip=t=>roster.filter(p=>p.team===t).map(p=>(p.id===me.id?me:others[p.id]||{dead:1}).dead?'○':'●').join('');
+  put('pip0',pip(0));put('pip1',pip(1));put('sc0',''+score[0]);put('sc1',''+score[1]);
   put('hpNum',me.dead?'':''+Math.max(0,me.hp|0));setW('hpFill',me.dead?0:clamp(me.hp/me.maxHp*100,0,100));
   put('opName',me.dead?'':me.drone?'드론':o.n);
   put('ammo',off?'':reloadT>0?'장전 중':ammo[gun]+' / '+res[gun]);
   put('gunName',off?'':g.n+'  ['+(gun+1)+']');
   put('gads',off?'':'[G] '+o.g+(o.sensor?'':' ×'+me.gad)+'\n[T] '+NADE[o.nade].n+' ×'+me.nn);
   put('note',killT>0?'처치':'');
-  let m='',prog=0;
-  if(phase==='end')m=mode==='solo'?msg:'';
-  else if(me.dead){const sp=viewTarget();m=(deathMsg?deathMsg+'\n':'')+(sp?'관전: '+sp.name+' (클릭: 다음 팀원)':mode==='mp'?'다음 라운드 대기':'')}
+  let m='',prog=0;const hc=aimHatch(),c0=(me.y|0)*MW+(me.x|0);
+  if(phase==='end')m='';
+  else if(me.dead){const sp=viewTarget();m=(deathMsg?deathMsg+'\n':'')+(sp?'관전: '+sp.name+' (클릭: 다음 팀원)':'다음 라운드 대기')}
   else if(!locked())m='화면을 클릭하면 조작 시작';
   else if(holdT>0){m=isAtk()?'디퓨저 설치 중':'디퓨저 해제 중';prog=holdT/5}
-  else if(phase==='prep')m=(!isAtk()?'준비 — 벽 보강·구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경';
+  else if(phase==='prep')m=(!isAtk()?'준비 — 벽·해치 보강, 구멍 뚫기 가능':me.drone===1?'드론 정찰 중 — 바리케이드 밑으로 통과':'드론 파괴됨 — 교전 대기')+' · [O] 오퍼레이터 변경';
   else if(charge>=0)m='[G] 폭약 기폭';
   else if(isAtk()&&!defuser&&inSite(me.x,me.y))m='목표 구역 — [F] 꾹 눌러 디퓨저 설치';
   else if(!isAtk()&&defuser&&Math.hypot(me.x-defuser.x,me.y-defuser.y)<1.3)m='[F] 꾹 눌러 디퓨저 해제';
   else if(sensing)m='심박 감지 중';
+  else if(hc>=0){                                               // a floor hatch under the crosshair, or overhead
+    const st2=hatch[hc],can=me.gad&&!o.sensor&&!o.trap;
+    m=st2===3?'':isAtk()?(can&&(st2===1||o.thermal)?'[G] 해치 파괴':st2===2?'보강된 해치 — 용접 폭약 필요':'')+(st2===1?' · [V] 타격 (3번)':''):st2===1?(can?'[G] 해치 보강 · ':'')+'[V] 타격 (3번)':'보강된 해치';
+  }
+  else if(stair[c0])m='계단 — 벗어났다가 다시 밟으면 '+(me.y>=FH?'1층으로':'2층으로');
   else if(doorAhead(1)>=0)m='[B] 바리케이드 설치';
   else if(o.trap){const c=doorAhead(0);m=me.gad&&c>=0&&traps[c]===undefined?'[G] 문 함정 설치':''}
   else{
@@ -141,7 +142,7 @@ function hud(){
     if(hitC>=0&&t!==RTHIN)m+=(m?' · ':'')+'[V] 타격';
   }
   put('prompt',m);setW('progFill',prog*100);if($('prog').hidden!==!prog)$('prog').hidden=!prog;
-  const sec=now/1000|0,showB=!!keys.Tab||phase==='end'&&mode==='mp';       // scoreboard: Tab, and between rounds
+  const sec=now/1000|0,showB=!!keys.Tab||phase==='end';        // scoreboard: Tab, and between rounds
   if(showB&&(hud.bs!==sec||$('board').hidden)){hud.bs=sec;drawBoard()}
   if($('board').hidden===showB)$('board').hidden=!showB;
   if(hud.fv!==feedV||hud.sec!==sec){                           // kill feed: last few lines, each for 10 s

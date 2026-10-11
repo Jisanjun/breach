@@ -46,7 +46,7 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font:14px/1.5 sys
 #box{width:min(620px,94vw);max-height:94vh;overflow:auto;background:#16181d;border:1px solid #333;border-radius:8px;padding:18px 22px}
 h1{margin:0 0 10px;font-size:26px;letter-spacing:2px}h1 small{font-size:13px;color:#999;letter-spacing:0}
 h2{margin:14px 0 4px;font-size:13px;color:#9aa;font-weight:600}
-input,button{font:inherit;padding:8px 10px;border-radius:5px;border:1px solid #444;background:#0c0d10;color:#eee}
+input,button,select{font:inherit;padding:8px 10px;border-radius:5px;border:1px solid #444;background:#0c0d10;color:#eee}
 button{cursor:pointer;background:#2b62d9;border-color:#2b62d9;font-weight:600}
 button:disabled{opacity:.5;cursor:default}
 button.alt{background:#2a2d35;border-color:#444}
@@ -85,17 +85,18 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
     <div class="row">
       <button id="bJoin" hidden>방 참가</button>
       <button id="bHost">방 만들기 (5v5)</button>
-      <button id="bSolo" class="alt">혼자 연습 (봇전)</button>
+      <button id="bSolo" class="alt">혼자 연습 (봇과 5대5)</button>
     </div>
   </div>
   <div id="lobby" hidden>
     <div id="res"></div>
-    <div class="row"><input type="text" id="link" readonly><button id="bCopy" class="alt">초대 링크 복사</button></div>
+    <div class="row" id="linkRow"><input type="text" id="link" readonly><button id="bCopy" class="alt">초대 링크 복사</button></div>
     <div id="teams">
       <div><b class="c0">블루</b><ul id="t0"></ul></div>
       <div><b class="c1">오렌지</b><ul id="t1"></ul></div>
     </div>
-    <div class="row"><button id="bStart" hidden>매치 시작</button><button id="bTeam" class="alt">팀 바꾸기</button></div>
+    <div class="row"><button id="bStart" hidden>매치 시작</button><button id="bTeam" class="alt">팀 바꾸기</button>
+      <label id="fillRow" hidden>빈 자리 봇 <select id="fill"><option value="0">없음</option><option value="2">2대2까지</option><option value="3">3대3까지</option><option value="4">4대4까지</option><option value="5">5대5까지</option></select></label></div>
     <div id="wait"></div>
   </div>
   <div id="pause" hidden>
@@ -113,15 +114,17 @@ details{margin-top:12px;color:#9aa;font-size:12.5px}summary{cursor:pointer;color
   <details><summary>조작법과 규칙</summary>
   <pre id="help">WASD 이동 · Shift 달리기 · C 앉기 · Q/E 기울이기
 좌클릭 사격 · 우클릭 조준 · R 장전 · 1/2/X/휠 무기 교체
-V 근접 (문 바리케이드 3타, 창문 2타) · G 가젯 · T 투척물
+V 근접 (문 3타, 창문 2타, 해치 3타) · G 가젯 · T 투척물
 B 열린 문에 바리케이드 · Z/휠클릭 핑 · Tab 점수판
 F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 
 공격: 바닥이 붉은 방에 디퓨저를 설치하고 35초 지키거나, 방어팀 전멸
 방어: 3분 버티기, 공격팀 전멸, 또는 설치된 디퓨저 해제
-준비 30초: 공격팀은 드론 정찰, 방어팀은 벽 보강. 4라운드 선승
+준비 단계: 공격팀은 드론 정찰, 방어팀은 벽·해치 보강. 4라운드 선승
+건물은 2층. 줄무늬 바닥이 계단이고, 2층 바닥의 해치를 부수면 아래층으로 뛰어내릴 수 있다
+해치는 위에서 내려다보거나 아래에서 올려다보며 G(폭약·해머·보강) 또는 V
 밝은 벽·문·창문 판자는 총알이 뚫는다. 구멍으로 보고 쏠 수 있고, 많이 뚫리면 통째로 무너진다
-벽돌·콘크리트·강철은 안 뚫린다. 보강한 벽은 용접 폭약으로만 뚫린다</pre>
+벽돌·콘크리트·강철은 안 뚫린다. 보강한 벽과 해치는 용접 폭약으로만 뚫린다</pre>
   </details>
   <div id="ver"></div>
 </div></div>
@@ -129,7 +132,7 @@ F 꾹 누르기: 디퓨저 설치(공격) / 해제(방어) · Esc 메뉴
 <script>
 // One version stamp for every script, so a deploy can never leave a browser with a mix of old and new files.
 // Bump V on each release. On localhost it changes every load so edits always show up.
-const V=location.hostname==='localhost'?Date.now():'3.1';
+const V=location.hostname==='localhost'?Date.now():'4.0';
 for(const f of ['core','gfx','audio','world','game','net','render','ui','main'])document.write('<script src="js/'+f+'.js?v='+V+'"><\/script>');
 </script>
 </body>

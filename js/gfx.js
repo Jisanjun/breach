@@ -33,6 +33,12 @@ const FT=[                                                     // floors: 0 yard
   shades(mkTex((u,v,n)=>u<2||v<2?rgb(220,180,30):rgb(150+n,58+n*.4,50+n*.4)))];
 const CT=shades(mkTex((u,v,n)=>u===0||v===0?gray(96):u>11&&u<20&&v>13&&v<18?rgb(250,250,235):gray(150,n*.4)));   // ceiling tiles with a light
 
+const FSTAIR=shades(mkTex((u,v,n)=>v%8<2?rgb(40,40,44):u<2||u>29?rgb(230,190,40):rgb(120+n,120+n,126+n)));   // stair treads
+const HT=[null,                                  // hatch, seen as floor from above and as ceiling from below: 1 shut, 2 reinforced, 3 open
+  shades(mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(60,44,28):u===15||u===16?rgb(70,50,32):rgb(150+n,108+n,62+n))),
+  shades(mkTex((u,v,n)=>u<2||u>29||v<2||v>29?rgb(30,32,38):u%8===4&&v%8===4?rgb(160,160,170):rgb(70+n/2,76+n/2,88+n/2))),
+  shades(mkTex((u,v)=>u<2||u>29||v<2||v>29?rgb(60,44,28):rgb(8,8,10)))];
+
 // ---------- sprites ----------
 const SW=20,SH=36,GUNC=0x101010;               // GUNC texels light up while the sprite's flash is on
 const spr=(t,w,h)=>({t:shades(t),w,h,m:Uint8Array.from(t,c=>c===GUNC?1:0)});

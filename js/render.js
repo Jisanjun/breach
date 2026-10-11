@@ -13,18 +13,20 @@ function castPlanes(proj,ca,sa,plX,plY,hor){
     const fl=p>0,dist=(fl?cam.z:1-cam.z)*proj/(fl?p:-p),sx=dist*2*plX/W,sy=dist*2*plY/W,f=fogAt(dist);
     let fx=cam.x+dist*(ca-plX),fy=cam.y+dist*(sa-plY);
     if(fl){
-      const t0=FT[0][lvl(f*1.12)],t1=FT[1][lvl(f*.92)],t2=FT[2][lvl(f*.92)];
+      const L1=lvl(f*.92),t0=FT[0][lvl(f*1.12)],t1=FT[1][L1],t2=FT[2][L1],tS=FSTAIR[L1];
       for(let x=0;x<W;x++,fx+=sx,fy+=sy){
         const cx=fx|0,cy=fy|0;
         if(fx<0||fy<0||cx>=MW||cy>=MH){px[row+x]=FOG;continue}
-        const z=zone[cy*MW+cx];
-        px[row+x]=(z?z-2===site?t2:t1:t0)[(fy*TEX&31)<<5|fx*TEX&31];
+        const c=cy*MW+cx,z=zone[c],hh=hatch[c];
+        px[row+x]=(hh?HT[hh][L1]:stair[c]?tS:z?z-2===site?t2:t1:t0)[(fy*TEX&31)<<5|fx*TEX&31];
       }
     }else{
-      const t1=CT[lvl(f*.92)],sky=SKY[Math.min(H*2-1,-p|0)];
+      const L1=lvl(f*.92),t1=CT[L1],sky=SKY[Math.min(H*2-1,-p|0)];
       for(let x=0;x<W;x++,fx+=sx,fy+=sy){
         const cx=fx|0,cy=fy|0;
-        px[row+x]=fx<0||fy<0||cx>=MW||cy>=MH||!zone[cy*MW+cx]?sky:t1[(fy*TEX&31)<<5|fx*TEX&31];
+        if(fx<0||fy<0||cx>=MW||cy>=MH){px[row+x]=sky;continue}
+        const c=cy*MW+cx,hh=c<OFFC?hatch[c+OFFC]:0;             // a hatch in the floor above shows in this ceiling
+        px[row+x]=zone[c]?(hh?HT[hh][L1]:t1)[(fy*TEX&31)<<5|fx*TEX&31]:sky;
       }
     }
   }
@@ -98,6 +100,7 @@ const vig=document.createElement('canvas');vig.width=W;vig.height=H;
 
 function render(){
   const proj=W/2/fov,ca=Math.cos(cam.a),sa=Math.sin(cam.a),plX=-sa*fov,plY=ca*fov,hor=H/2+cam.pitch*proj;
+  const upMe=cam.y>=FH,shift=y=>(y>=FH)===upMe?0:upMe?FH:-FH;       // shift: brings a spot on the other floor to the place right above/below
   castPlanes(proj,ca,sa,plX,plY,hor);depth.fill(1e9);castWalls(proj,ca,sa,plX,plY,hor);
 
   // ---- sprites, far to near ----
@@ -108,8 +111,8 @@ function render(){
   for(const c in traps)add(c%MW+.5,(c/MW|0)+.5,P_TRAP,.05,.7,.12);
   for(const n of nades)add(n.x,n.y,P_NADE,.07,.07,n.z-.035);
   for(const s of smokes){const k=Math.min(1,(14-s.t)*1.5,s.t/2)*1.2;for(const p of s.p)add(s.x+p[0],s.y+p[1],P_PUFF,k,k,p[2]-k/2)}
-  for(const s of mode==='mp'?Object.values(others):bots){
-    if(!s.bot&&s.z<.05)continue;                             // destroyed drone
+  for(const s of Object.values(others)){
+    if(s.z<.05)continue;                                     // destroyed drone
     if(s.dead)add(s.x,s.y,CORPSE[s.team],.14,.75,0,s);
     else if(s.z<.2)add(s.x,s.y,P_DRONE,.1,.24,0,s);          // a player driving a drone
     else{
@@ -129,8 +132,8 @@ function render(){
         px[i]=white?0xffffffff:fl&&S.m[ti]?0xff60f0ff:c;
       }
     }
-    if(!o||!o.name||o.dead)continue;
-    if(!o.bot&&o.team===me.team)labels.push(['▼ '+o.name,sx,top-3,'#9cf']);                               // teammates show through walls
+    if(!o||!o.name||o.dead||(o.y>=FH)!==upMe)continue;
+    if(o.team===me.team)labels.push(['▼ '+o.name,sx,top-3,'#9cf']);                               // teammates show through walls
     else if(sensing&&Math.hypot(o.x-me.x,o.y-me.y)<7)labels.push(['♥',sx,(top+bot)/2,'#f44']);            // heartbeat sensor
   }
   for(const p of parts){
@@ -139,14 +142,19 @@ function render(){
     for(let yy=sy;yy<sy+sz;yy++)for(let xx=sx;xx<sx+sz;xx++)if(xx>=0&&xx<W&&yy>=0&&yy<H&&depth[yy*W+xx]>=d-.06)px[yy*W+xx]=p.col;
   }
   for(const p of pings){
-    const dx=p.x-cam.x,dy=p.y-cam.y,d=dx*ca+dy*sa;
+    const dx=p.x-cam.x,dy=p.y+shift(p.y)-cam.y,d=dx*ca+dy*sa;
     if(d>.2)labels.push(['◆ '+p.who,W/2+(dy*ca-dx*sa)/d*proj,hor+(cam.z-p.z)*proj/d,'#fd3']);
   }
   const mark=(o,txt,col)=>{                                   // objective markers show through walls
-    const dx=o.x-cam.x,dy=o.y-cam.y,d=dx*ca+dy*sa;
-    if(d>.6)labels.push([txt+' '+(Math.hypot(dx,dy)*2|0)+'m',W/2+(dy*ca-dx*sa)/d*proj,hor+(cam.z-.75)*proj/d,col]);
+    const sh=shift(o.y),dx=o.x-cam.x,dy=o.y+sh-cam.y,d=dx*ca+dy*sa;
+    if(d>.6)labels.push([txt+(sh?sh<0?' △위층':' ▽아래층':'')+' '+(Math.hypot(dx,dy)*2|0)+'m',W/2+(dy*ca-dx*sa)/d*proj,hor+(cam.z-.75)*proj/d,col]);
   };
   if(mode!=='menu'&&phase!=='lobby')defuser?mark(defuser,'◈ 디퓨저','#ff6a5a'):mark(bomb,'◇ 목표','#fff');
+  for(const o of Object.values(others)){                       // teammates on the other floor: a marker right above/below them
+    const sh=shift(o.y);if(!sh||o.dead||o.team!==me.team)continue;
+    const dx=o.x-cam.x,dy=o.y+sh-cam.y,d=dx*ca+dy*sa;
+    if(d>.3)labels.push([(sh<0?'△ ':'▽ ')+o.name,W/2+(dy*ca-dx*sa)/d*proj,hor+(sh<0?-.7:.7)*proj/d,'#9cf']);
+  }
   ctx.putImageData(img,0,0);
 
   // ---- overlays ----
@@ -175,6 +183,7 @@ function render(){
   }
   if(boomT>0){ctx.fillStyle=`rgba(255,240,210,${Math.min(1,boomT*1.6)})`;ctx.fillRect(0,0,W,H)}
   if(flashT>0){ctx.fillStyle=`rgba(255,255,255,${Math.min(1,flashT/1.2)})`;ctx.fillRect(0,0,W,H)}
+  if(fade>0){ctx.fillStyle=`rgba(0,0,0,${Math.min(1,fade*3.5)})`;ctx.fillRect(0,0,W,H)}       // changing floors
   if(me.dead&&playing&&!viewTarget()){ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,W,H)}
   cv.style.transform=`rotate(${me.lean*4}deg) scale(${1+Math.abs(me.lean)*.1})`;
 }

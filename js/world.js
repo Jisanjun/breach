@@ -1,5 +1,5 @@
 'use strict';
-// World simulation that every client runs the same way: wall destruction, ray tests, bullets, grenades, traps.
+// World simulation that every client runs the same way: wall destruction, hatches, ray tests, bullets, grenades, traps.
 // Particles are cosmetic only.
 const pcol=(r,g,b)=>0xff000000|rgb(r,g,b);
 const PLASTER=pcol(205,190,160),WOOD=pcol(150,105,58),METAL=pcol(110,116,128),SPARK=pcol(255,220,110),BLOOD=pcol(170,20,20),SOOT=pcol(24,24,26);
@@ -73,8 +73,30 @@ function explode(c,net,th){                      // breach charge on wall cell c
   sfx.boom(x,y,1);spawnP(x,y,.5,30,SOOT,4,.9,1,2);spawnP(x,y,.5,12,SPARK,5,.35,1);
   if(Math.hypot(cam.x-x,cam.y-y)<9)boomT=.5;
   if(Math.hypot(me.x-x,me.y-y)<1.8)hurt(60,'폭발',{x,y});
-  for(const b of bots)if(Math.hypot(b.x-x,b.y-y)<1.8)hitBot(b,60);
-  alertBots(99);
+  for(const b of hostBots())if(Math.hypot(b.x-x,b.y-y)<1.8)botHurt(b,60,{name:'폭발'});
+  blastHatches(x,y,1.3);
+}
+
+// ---------- floor hatches (cells on the upper floor; an open one drops you to the floor below) ----------
+function openHatch(c,net){
+  if(hatch[c]!==1&&hatch[c]!==2)return;
+  hatch[c]=3;
+  const x=c%MW+.5,y=(c/MW|0)+.5;
+  spawnP(x,y,.05,16,WOOD,2.5,.9,1,2);spawnP(x,y-FH,.95,20,WOOD,2,1.2,1,2);sfx.crash(x,y);
+  if(net)send({t:'hx',c});
+}
+function hitHatch(c,net){                        // melee: the third hit breaks a plain hatch (holeN is free to count on floor cells)
+  if(hatch[c]!==1)return;
+  spawnP(c%MW+.5,(c/MW|0)+.5,.05,6,WOOD,1.6,.6,1);
+  if(net)send({t:'hm',c});
+  if(++holeN[c]>=3)openHatch(c);
+}
+function blastHatches(x,y,r){                    // a blast opens plain hatches on its own floor and the one right overhead
+  const cx=x|0,cy=y|0;
+  for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
+    const q=(cy+j)*MW+cx+i;
+    if(Math.hypot(cx+i+.5-x,cy+j+.5-y)<r)for(const c of [q,q+OFFC])if(c<NC&&hatch[c]===1)openHatch(c);
+  }
 }
 
 // ---------- rays ----------
@@ -115,13 +137,13 @@ function los(x0,y0,z0,x1,y1,z1){
   const dx=x1-x0,dy=y1-y0,d=Math.hypot(dx,dy);
   return d<.05||trace(x0,y0,z0,dx/d,dy/d,(z1-z0)/d,d,-1)>=d-.02;
 }
-// One bullet. by: the bot that fired it (then I'm the target); otherwise it's mine. hsDmg: damage on a headshot.
+// One bullet from `by` (me, or a bot the host is driving). Only the shooter's machine runs this.
 function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg){
   const dx=Math.cos(a),dy=Math.sin(a),stop=trace(ox,oy,oz,dx,dy,slope,40,hole);
   let best,bd=stop,bz;
-  for(const t of by?[{x:cam.x,y:cam.y,z:me.z,dead:me.dead,me:1}]:foes()){
+  for(const t of enemiesOf(by.team)){
     if(t.dead||t.z<.05)continue;
-    const rx=t.x-ox,ry=t.y-oy,al=rx*dx+ry*dy;
+    const rx=(t===me?cam.x:t.x)-ox,ry=(t===me?cam.y:t.y)-oy,al=rx*dx+ry*dy;
     if(al<=0||al>=bd||Math.abs(rx*dy-ry*dx)>.22)continue;
     const z=oz+slope*al;if(z<0||z>t.z+.12)continue;
     best=t;bd=al;bz=z;
@@ -135,7 +157,7 @@ function bullet(ox,oy,oz,a,slope,dmg,hole,by,hsDmg){
   }
   let k=1;for(const q of pens)if(q<bd)k*=.7;     // each wall penetrated costs damage
   spawnP(ox+dx*bd,oy+dy*bd,bz,5,BLOOD,1.5,.5,1);
-  if(best.me)return hurt(dmg*k,by.name,by);
+  if(by!==me)return hitBy(by,best,dmg*k);
   const hs=bz>best.z-.08;
   hitFoe(best,(hs?hsDmg:dmg)*k,hs);
 }
@@ -160,7 +182,11 @@ function updNades(dt){
       let c=nadeSolid(n.x+n.vx*h,n.y,n.z);if(c>=0){n.vx*=-.4;hit=c}else n.x+=n.vx*h;
       c=nadeSolid(n.x,n.y+n.vy*h,n.z);if(c>=0){n.vy*=-.4;hit=c}else n.y+=n.vy*h;
       n.z+=n.vz*h;
-      if(n.z<.04){if(n.vz<-.4||NADE[n.k].hit)hit=-2;n.z=.04;n.vz*=-.4;n.vx*=.7;n.vy*=.7}      // -2: bounced on the floor
+      if(n.z<.04){
+        if(n.y>=FH&&hatch[(n.y|0)*MW+(n.x|0)]===3){n.y-=FH;n.z=.94;continue}     // rolled into an open hatch: falls to the floor below
+        if(n.vz<-.4||NADE[n.k].hit)hit=-2;                                       // -2: bounced on the floor
+        n.z=.04;n.vz*=-.4;n.vx*=.7;n.vy*=.7;
+      }
       if(n.z>.96){n.z=.96;n.vz*=-.4}
     }
     n.fuse-=dt;
@@ -175,7 +201,7 @@ function updNades(dt){
   for(let i=smokes.length;i--;)if((smokes[i].t-=dt)<=0)smokes.splice(i,1);
 }
 function nadeBoom(k,x,y,z,c,own){
-  const d=Math.hypot(me.x-x,me.y-y),mine=own===me,foe=mode!=='mp'||own.team!==me.team,bz=clamp(z,.1,.9);
+  const d=Math.hypot(me.x-x,me.y-y),mine=own===me,foe=own.team!==me.team,bz=clamp(z,.1,.9);
   if(k==='smoke'){
     smokes.push({x,y,t:14,p:Array.from({length:6},()=>[rnd(1.7),rnd(1.7),.2+Math.random()*.5])});
     return sfx.hiss(x,y);
@@ -186,16 +212,19 @@ function nadeBoom(k,x,y,z,c,own){
       const f=(1+Math.cos(Math.atan2(y-cam.y,x-cam.x)-cam.a))/2;
       flashT=Math.max(flashT,(1-d/14)*(.6+3.4*f*f));sfx.ring();
     }
-    for(const b of bots)if(!b.dead&&Math.hypot(b.x-x,b.y-y)<7&&los(x,y,bz,b.x,b.y,.5))b.blind=2.5;
+    for(const b of hostBots())if(Math.hypot(b.x-x,b.y-y)<7&&los(x,y,bz,b.x,b.y,.5))b.blind=2.5;
     return;
   }
   const big=k==='frag',R=big?3.4:1.7,D=big?130:55;
   sfx.boom(x,y,big);spawnP(x,y,z,big?40:16,SOOT,4,.9,1,2);spawnP(x,y,z,big?16:8,SPARK,5,.35,1);
   if(Math.hypot(cam.x-x,cam.y-y)<9)boomT=big?.5:.25;
   if((mine||foe)&&d<R&&los(x,y,bz,cam.x,cam.y,me.z))hurt(D*(1-d/R),mine?'자폭':own.name,mine?{x,y}:own);
-  if(mine)for(const b of bots){const l=Math.hypot(b.x-x,b.y-y);if(!b.dead&&l<R&&los(x,y,bz,b.x,b.y,.5))hitBot(b,D*(1-l/R))}
-  alertBots(99);
-  // tear into thin walls around the blast: depends only on the reported position, so every client agrees
+  for(const b of hostBots()){                                   // the host answers for its bots (no friendly fire from grenades)
+    const l=Math.hypot(b.x-x,b.y-y);
+    if(b.team!==own.team&&l<R&&los(x,y,bz,b.x,b.y,.5))botHurt(b,D*(1-l/R),own);
+  }
+  noiseAt(x,y,30,-1);
+  // tear into thin walls and hatches around the blast: depends only on the reported position, so every client agrees
   if(k==='impact'&&c>=0)destroy(c);
   const r=big?1.3:.8,cx=x|0,cy=y|0;
   for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
@@ -204,6 +233,7 @@ function nadeBoom(k,x,y,z,c,own){
     const o=orient[q],u=clamp(o?x-cx-i:y-cy-j,0,.999);
     if(Math.hypot(o?x-cx-i-u:x-cx-i-.5,o?y-cy-j-.5:y-cy-j-u)<r)punch(q,u*TEX|0,(1-bz)*TEX|0,big?9:6);
   }
+  blastHatches(x,y,big?1.5:.9);
 }
 
 // ---------- door traps ----------
